@@ -20,4 +20,6 @@ Thumbs.db
 .vscode/
 *.swp
 backend/klg.db
+
+# Knowledge base (large PDFs from PAPA)
 knowledge/
