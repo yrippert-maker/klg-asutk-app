@@ -1,0 +1,25 @@
+import type { Metadata } from 'next'
+import { ReactNode } from 'react'
+import './globals.css'
+import { Providers } from './providers'
+
+export const metadata: Metadata = {
+  title: 'REFLY - Контроль лётной годности',
+  description: 'Система контроля лётной годности воздушных судов',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode
+}) {
+  return (
+    <html lang="ru">
+      <body>
+        <Providers>
+          {children}
+        </Providers>
+      </body>
+    </html>
+  )
+}

@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: klg-asutk-app
+  labels:
+    app: klg-asutk-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: klg-asutk-app
+  template:
+    metadata:
+      labels:
+        app: klg-asutk-app
+    spec:
+      containers:
+      - name: klg-asutk-app
+        image: klg-asutk-app:latest
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: klg-secrets
+              key: db-host
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: klg-secrets
+              key: db-name
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: klg-secrets
+              key: db-user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: klg-secrets
+              key: db-password
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: klg-config
+              key: redis-host
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: klg-secrets
+              key: openai-api-key
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        # Liveness Probe - проверяет, что контейнер работает
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        # Readiness Probe - проверяет, что контейнер готов принимать трафик
+        readinessProbe:
+          httpGet:
+            path: /api/health?readiness=true
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        # Startup Probe - для медленно стартующих контейнеров
+        startupProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 30 # 5 минут на старт
+      # Graceful shutdown
+      terminationGracePeriodSeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: klg-asutk-app-service
+spec:
+  selector:
+    app: klg-asutk-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+  type: LoadBalancer
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: klg-config
+data:
+  redis-host: "redis-service"
+  redis-port: "6379"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: klg-secrets
+type: Opaque
+stringData:
+  db-host: "postgres-service"
+  db-name: "klg_db"
+  db-user: "postgres"
+  db-password: ""  # SET VIA CI/CD PIPELINE
+  openai-api-key: ""  # SET VIA CI/CD PIPELINE
