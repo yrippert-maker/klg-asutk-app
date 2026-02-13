@@ -1,25 +1,8 @@
-node_modules/
-.venv/
-venv/
-__pycache__/
+FIND: # local env files
+REPLACE: # local env files
 .env
+.env.*
 .env.local
-.env.production
-.env*.local
-.next/
-build/
-dist/
-*.tsbuildinfo
-*.db
-*.sqlite3
-*.log
-logs/
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
-*.swp
-backend/klg.db
-
-# Knowledge base (large PDFs from PAPA)
-knowledge/
+.env.development.local
+.env.test.local
+.env.production.local

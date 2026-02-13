@@ -1,6 +1,20 @@
-// Stub: accessibility/keyboard
-export class Hotkey {}
-export function createActivationHandler(...a:any[]):any{return null}
-export function createEscapeHandler(...a:any[]):any{return null}
-export function createFocusTrap(...a:any[]):any{return null}
-export function registerHotkeys(...a:any[]):any{return null}
+/** Горячие клавиши и фокус. MVP: no-op реализации */
+export class Hotkey {
+  constructor(_key: string, _handler: () => void) {}
+  register() {}
+  unregister() {}
+}
+
+export function createActivationHandler(_keys: string[], _handler: () => void) {
+  return () => {};
+}
+
+export function createEscapeHandler(_handler: () => void) {
+  return (e: KeyboardEvent) => { if (e.key === 'Escape') _handler(); };
+}
+
+export function createFocusTrap(_container: HTMLElement) {
+  return { activate: () => {}, deactivate: () => {} };
+}
+
+export function registerHotkeys(_map: Record<string, () => void>) {}

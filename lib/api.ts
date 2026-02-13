@@ -20,12 +20,13 @@ export interface Aircraft {
   [key: string]: any;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export async function apiFetch(path: string, opts: RequestInit = {}) {
   const res = await fetch(API_BASE + path, { ...opts, headers: { "Content-Type": "application/json", ...opts.headers } });
-  if (res.ok === false) throw new Error("API error: " + res.status);
-  return res.json();
+  if (!res.ok) throw new Error("API error: " + res.status);
+  const json = await res.json();
+  return json.data !== undefined ? json.data : json;
 }
 
 export const aircraftApi = {

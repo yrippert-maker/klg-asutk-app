@@ -55,8 +55,8 @@ export default function DashboardPage() {
   const isLoading = !hasAnyData && aircraftLoading && !aircraftError && !loadingTimeout;
   
   const stats = statsData || {
-    aircraft: { total: 0, active: 0, maintenance: 0 },
-    risks: { total: 0, critical: 0, high: 0 },
+    aircraft: { total: 0, active: 0, maintenance: 0, storage: 0 },
+    risks: { total: 0, critical: 0, high: 0, medium: 0, low: 0 },
     audits: { current: 0, upcoming: 0, completed: 0 },
   };
 
@@ -115,10 +115,11 @@ export default function DashboardPage() {
       };
 
       aircraft.forEach((a: Aircraft) => {
-        if (a.status?.toLowerCase().includes('активен')) {
+        const s = (a.status || '').toLowerCase();
+        if (s.includes('активен') || s === 'active') {
           newStats.active++;
         }
-        if (a.status?.toLowerCase().includes('обслуживан') || a.status?.toLowerCase().includes('ремонт')) {
+        if (s.includes('обслуживан') || s.includes('ремонт') || s === 'maintenance') {
           newStats.maintenance++;
         }
         
@@ -132,59 +133,62 @@ export default function DashboardPage() {
       });
 
       setComputedStats(newStats);
+    } else if (stats?.aircraft?.total) {
+      setComputedStats({
+        total: stats.aircraft.total,
+        active: stats.aircraft.active ?? 0,
+        maintenance: stats.aircraft.maintenance ?? 0,
+        types: new Map(),
+        operators: new Map(),
+      });
     }
-  }, [aircraft]);
+  }, [aircraft, stats?.aircraft?.total, stats?.aircraft?.active, stats?.aircraft?.maintenance]);
 
-  // Обновляем статистику рисков: приоритет прямым данным
+  // Обновляем статистику рисков: приоритет прямым данным, fallback на stats
   useEffect(() => {
     if (directRisks.length > 0) {
-      // Используем прямые данные (приоритет)
       const calculatedStats = {
         total: directRisks.length,
-        critical: directRisks.filter((r: any) => r.level === 'Критический').length,
-        high: directRisks.filter((r: any) => r.level === 'Высокий').length,
-        medium: directRisks.filter((r: any) => r.level === 'Средний').length,
-        low: directRisks.filter((r: any) => r.level === 'Низкий').length,
+        critical: directRisks.filter((r: any) => r.level === 'Критический' || r.level === 'critical').length,
+        high: directRisks.filter((r: any) => r.level === 'Высокий' || r.level === 'high').length,
+        medium: directRisks.filter((r: any) => r.level === 'Средний' || r.level === 'medium').length,
+        low: directRisks.filter((r: any) => r.level === 'Низкий' || r.level === 'low').length,
       };
       setRisksStats(calculatedStats);
-    } else if (stats.risks && (stats.risks.total > 0 || stats.risks.critical > 0 || stats.risks.high > 0)) {
-      // Используем данные из stats, если прямые данные недоступны
+    } else if (stats?.risks && (stats.risks.total > 0 || stats.risks.critical > 0 || stats.risks.high > 0)) {
       setRisksStats({
         total: stats.risks.total || 0,
         critical: stats.risks.critical || 0,
         high: stats.risks.high || 0,
-        medium: 0,
-        low: 0,
+        medium: (stats.risks as any).medium ?? 0,
+        low: (stats.risks as any).low ?? 0,
       });
     }
-  }, [stats.risks, directRisks]);
+  }, [stats?.risks, directRisks]);
 
-  // Обновляем статистику аудитов: приоритет прямым данным
+  // Обновляем статистику аудитов: приоритет прямым данным, fallback на stats
   useEffect(() => {
     if (directAudits.length > 0) {
-      // Используем прямые данные (приоритет)
       const now = new Date();
       const calculatedStats = {
-        current: directAudits.filter((a: any) => a.status === 'В процессе').length,
+        current: directAudits.filter((a: any) => a.status === 'В процессе' || a.status === 'in_progress').length,
         upcoming: directAudits.filter((a: any) => {
-          if (a.status !== 'Запланирован' || !a.date) {
-            return false;
-          }
-          const auditDate = new Date(a.date);
-          return auditDate >= now;
+          const s = a.status || '';
+          if ((s !== 'Запланирован' && s !== 'planned') || !(a.date || a.startDate)) return false;
+          const d = new Date(a.date || a.startDate);
+          return d >= now;
         }).length,
-        completed: directAudits.filter((a: any) => a.status === 'Завершён').length,
+        completed: directAudits.filter((a: any) => a.status === 'Завершён' || a.status === 'completed').length,
       };
       setAuditsStats(calculatedStats);
-    } else if (stats.audits && (stats.audits.current > 0 || stats.audits.upcoming > 0 || stats.audits.completed > 0)) {
-      // Используем данные из stats, если прямые данные недоступны
+    } else if (stats?.audits && (stats.audits.current > 0 || stats.audits.upcoming > 0 || stats.audits.completed > 0)) {
       setAuditsStats({
         current: stats.audits.current || 0,
         upcoming: stats.audits.upcoming || 0,
         completed: stats.audits.completed || 0,
       });
     }
-  }, [stats.audits, directAudits]);
+  }, [stats?.audits, directAudits]);
 
   useEffect(() => {
     if (aircraft.length > 0) {
@@ -202,10 +206,11 @@ export default function DashboardPage() {
         const data = operatorData.get(a.operator)!;
         data.total++;
         
-        if (a.status?.toLowerCase().includes('активен')) {
+        const s = (a.status || '').toLowerCase();
+        if (s.includes('активен') || s === 'active') {
           data.active++;
         }
-        if (a.status?.toLowerCase().includes('обслуживан') || a.status?.toLowerCase().includes('ремонт')) {
+        if (s.includes('обслуживан') || s.includes('ремонт') || s === 'maintenance') {
           data.maintenance++;
         }
       });

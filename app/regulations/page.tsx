@@ -28,7 +28,7 @@ export default function RegulationsPage() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.log('[Regulations] API response:', { 
+        // console.log('[Regulations] API response:', { 
           isArray: Array.isArray(data), 
           hasDocuments: !!data?.documents, 
           documentsLength: data?.documents?.length || 0,

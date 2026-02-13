@@ -1,4 +1,12 @@
-// Stub: accessibility/aria
-export function getButtonAriaProps(...a:any[]):any{return null}
-export function getFormFieldAriaProps(...a:any[]):any{return null}
-export function getModalAriaProps(...a:any[]):any{return null}
+/** ARIA-атрибуты для доступности. MVP: минимальные возвращаемые объекты */
+export function getButtonAriaProps(_opts?: { disabled?: boolean; pressed?: boolean }) {
+  return { 'aria-disabled': false };
+}
+
+export function getFormFieldAriaProps(_opts?: { id?: string; labelId?: string; errorId?: string; invalid?: boolean }) {
+  return {};
+}
+
+export function getModalAriaProps(_opts?: { titleId?: string; describedById?: string }) {
+  return { role: 'dialog', 'aria-modal': true };
+}

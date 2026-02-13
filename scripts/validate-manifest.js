@@ -41,7 +41,7 @@ let errors = [];
 let warnings = [];
 
 function validateManifest() {
-  console.log('🔍 Валидация manifest.json...\n');
+  // console.log('🔍 Валидация manifest.json...\n');
 
   // Проверка существования файла
   if (!fs.existsSync(MANIFEST_PATH)) {

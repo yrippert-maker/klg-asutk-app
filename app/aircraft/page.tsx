@@ -10,10 +10,12 @@ import SearchModal from '@/components/SearchModal';
 import Pagination from '@/components/Pagination';
 import { useAircraftData } from '@/hooks/useSWRData';
 import { useUrlParams } from '@/hooks/useUrlParams';
+import AircraftAddModal from '@/components/AircraftAddModal';
 
 export default function AircraftPage() {
   const { params } = useUrlParams();
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
   const page = params.page || 1;
   const limit = params.limit || 50;
@@ -72,6 +74,21 @@ export default function AircraftPage() {
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
+              onClick={() => setIsAddModalOpen(true)}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#1e3a5f',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 600,
+              }}
+            >
+              + Добавить ВС
+            </button>
+            <button
               onClick={() => setIsSearchModalOpen(true)}
               style={{
                 padding: '10px 20px',
@@ -127,6 +144,16 @@ export default function AircraftPage() {
           aircraft={aircraft}
           searchType="aircraft"
           onNavigate={handleNavigate}
+        />
+
+        <AircraftAddModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onSave={async (data, files) => {
+            console.log('New aircraft:', data, 'Files:', files);
+            alert('ВС ' + data.registrationNumber + ' добавлено (демо). Файлов: ' + files.length);
+            mutate();
+          }}
         />
       </div>
     </div>

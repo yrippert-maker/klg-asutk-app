@@ -1,38 +1,15 @@
 /**
- * Страница для тестирования доступности
+ * Страница для тестирования доступности (упрощённая)
  */
 'use client';
 
 import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
-import AccessibleButton from '@/components/AccessibleButton';
-import AccessibleInput from '@/components/AccessibleInput';
-import AccessibleModal from '@/components/AccessibleModal';
-import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation';
 import { getWCAGLevel } from '@/lib/accessibility/colors';
 
 export default function AccessibilityTestPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [contrastResult, setContrastResult] = useState<any>(null);
-
-  // Регистрация горячих клавиш
-  useKeyboardNavigation([
-    {
-      key: 'k',
-      ctrl: true,
-      handler: () => {
-        alert('Глобальный поиск (Ctrl+K)');
-      },
-    },
-    {
-      key: 'Escape',
-      handler: () => {
-        if (isModalOpen) {
-          setIsModalOpen(false);
-        }
-      },
-    },
-  ]);
 
   const testContrast = () => {
     const result = getWCAGLevel('#1e3a5f', '#ffffff', false);
@@ -52,48 +29,18 @@ export default function AccessibilityTestPage() {
             Навигация с клавиатуры
           </h2>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <AccessibleButton
+            <button
               onClick={() => alert('Кнопка 1')}
-              ariaLabel="Тестовая кнопка 1"
+              style={{ padding: '10px 20px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
             >
               Кнопка 1
-            </AccessibleButton>
-            <AccessibleButton
-              onClick={() => alert('Кнопка 2')}
-              ariaLabel="Тестовая кнопка 2"
-            >
-              Кнопка 2
-            </AccessibleButton>
-            <AccessibleButton
+            </button>
+            <button
               onClick={() => setIsModalOpen(true)}
-              ariaLabel="Открыть модальное окно"
+              style={{ padding: '10px 20px', backgroundColor: '#2196f3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
             >
               Открыть модальное окно
-            </AccessibleButton>
-          </div>
-          <p style={{ marginTop: '16px', fontSize: '14px', color: '#666' }}>
-            Попробуйте навигацию с клавиатуры: Tab для перехода, Enter/Space для активации, Escape для закрытия модальных окон.
-          </p>
-        </section>
-
-        <section aria-labelledby="forms-heading" style={{ marginBottom: '32px' }}>
-          <h2 id="forms-heading" style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>
-            Доступные формы
-          </h2>
-          <div style={{ maxWidth: '500px' }}>
-            <AccessibleInput
-              label="Имя пользователя"
-              name="username"
-              required
-              hint="Введите ваше имя пользователя"
-            />
-            <AccessibleInput
-              label="Email"
-              name="email"
-              type="email"
-              required
-              error="Неверный формат email"
-            />
+            </button>
           </div>
         </section>
 
@@ -123,14 +70,32 @@ export default function AccessibilityTestPage() {
           )}
         </section>
 
-        <AccessibleModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          title="Тестовое модальное окно"
-          description="Это модальное окно поддерживает навигацию с клавиатуры и фокус-ловку"
-        >
-          <p>Содержимое модального окна. Нажмите Escape или кликните вне окна для закрытия.</p>
-        </AccessibleModal>
+        {isModalOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+            }}
+            onClick={() => setIsModalOpen(false)}
+          >
+            <div
+              style={{ backgroundColor: 'white', padding: '24px', borderRadius: '8px', maxWidth: '400px' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3>Тестовое модальное окно</h3>
+              <p>Нажмите Escape или кликните вне окна для закрытия.</p>
+              <button onClick={() => setIsModalOpen(false)}>Закрыть</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

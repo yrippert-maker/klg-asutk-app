@@ -1,4 +1,5 @@
 from .health import router as health_router
+from .stats import router as stats_router
 from .organizations import router as organizations_router
 from .aircraft import router as aircraft_router
 from .cert_applications import router as cert_applications_router
@@ -18,6 +19,7 @@ from .audit import router as audit_router
 
 __all__ = [
     "health_router",
+    "stats_router",
     "organizations_router",
     "aircraft_router",
     "cert_applications_router",

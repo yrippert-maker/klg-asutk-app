@@ -28,11 +28,14 @@ export function middleware(request: NextRequest) {
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-XSS-Protection', '1; mode=block');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    const csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://api.openai.com";
+    const csp = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://api.openai.com";
     response.headers.set('Content-Security-Policy', csp);
   }
 
-  if (pathname.startsWith('/api') && !isPublicRoute(pathname)) {
+  // AUTH: в production требуется токен. Dev: ENABLE_DEV_AUTH + NEXT_PUBLIC_DEV_TOKEN на бэкенде
+  const isDev = process.env.NODE_ENV === 'development';
+  const skipAuth = isDev || process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+  if (pathname.startsWith('/api') && !isPublicRoute(pathname) && !skipAuth) {
     const authHeader = request.headers.get('authorization');
     const cookieToken = request.cookies.get('auth-token')?.value;
     if (!authHeader && !cookieToken) {

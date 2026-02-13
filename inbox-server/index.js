@@ -278,7 +278,7 @@ app.post("/api/inbox/files/:id/extract", async (req, res) => {
     const prompts = loadPrompts();
     
     // Логируем использование промптов
-    console.log(`[Extract] Run ${runId} started for file ${file.id}`);
+    // console.log(`[Extract] Run ${runId} started for file ${file.id}`);
     console.log(`[Extract] Using prompts: system.md, policy.md`);
     if (Object.keys(prompts.domainPrompts).length > 0) {
       console.log(`[Extract] Domain prompts: ${Object.keys(prompts.domainPrompts).join(", ")}`);

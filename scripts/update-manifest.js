@@ -87,7 +87,7 @@ function getAllFiles() {
 }
 
 function updateManifest() {
-  console.log('🔍 Сканирование файлов в knowledge/...\n');
+  // console.log('🔍 Сканирование файлов в knowledge/...\n');
   
   // Получаем все файлы
   const allFiles = getAllFiles();
