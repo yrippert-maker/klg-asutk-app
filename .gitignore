@@ -10,6 +10,7 @@ build/
 dist/
 
 # Python
+backend/venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -18,7 +19,7 @@ htmlcov/
 .coverage
 *.egg
 
-# Environment & secrets (никогда не коммитить)
+# Защита .env файлов и секретов (никогда не коммитить)
 .env
 .env.local
 .env.development

@@ -1,3 +1,2 @@
-// Stub: logger-client
-export function logError(...a:any[]):any{return null}
-export function logInfo(...a:any[]):any{return null}
+/** Re-export для клиентских компонентов: используйте logger вместо console */
+export { logInfo, logError, log, logWarn } from "./logger";
