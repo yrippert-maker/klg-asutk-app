@@ -1,255 +1,27 @@
 'use client';
-
 import { useState, useEffect } from 'react';
+import { Modal } from '@/components/ui';
+import FormField from '@/components/ui/FormField';
 
-interface Organization {
-  name: string;
-  type?: string;
-  address?: string;
-  contact?: string;
-  email?: string;
-  phone?: string;
-}
+interface Props { isOpen: boolean; onClose: () => void; organization: any; onSave: (data: any) => void; }
 
-interface OrganizationEditModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  organization: Organization | null;
-  onSave?: (updatedOrganization: Organization) => void;
-}
-
-export default function OrganizationEditModal({ isOpen, onClose, organization, onSave }: OrganizationEditModalProps) {
-  const [editedOrganization, setEditedOrganization] = useState<Organization | null>(null);
+export default function OrganizationEditModal({ isOpen, onClose, organization, onSave }: Props) {
+  const [form, setForm] = useState({ name: '', kind: 'operator', inn: '', address: '', contact_email: '', contact_phone: '' });
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   useEffect(() => {
-    if (organization) {
-      setEditedOrganization({ ...organization });
-    }
+    if (organization) setForm({ name: organization.name || '', kind: organization.kind || 'operator', inn: organization.inn || '', address: organization.address || '', contact_email: organization.contact_email || '', contact_phone: organization.contact_phone || '' });
   }, [organization]);
 
-  if (!isOpen || !organization || !editedOrganization) {
-    return null;
-  }
-
-  const handleChange = (field: keyof Organization, value: string) => {
-    setEditedOrganization({ ...editedOrganization, [field]: value });
-  };
-
-  const handleSave = () => {
-    if (!editedOrganization.name) {
-      alert('Пожалуйста, укажите название организации');
-      return;
-    }
-
-    if (onSave) {
-      onSave(editedOrganization);
-      alert('Организация успешно обновлена');
-      onClose();
-    }
-  };
-
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          padding: '32px',
-          maxWidth: '600px',
-          width: '90%',
-          maxHeight: '90vh',
-          overflow: 'auto',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>Редактирование организации</h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              color: '#666',
-              padding: '0',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ×
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-              Название организации <span style={{ color: 'red' }}>*</span>:
-            </label>
-            <input
-              type="text"
-              value={editedOrganization.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                fontSize: '14px',
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-              Тип организации:
-            </label>
-            <select
-              value={editedOrganization.type || 'Авиакомпания'}
-              onChange={(e) => handleChange('type', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                fontSize: '14px',
-              }}
-            >
-              <option value="Авиакомпания">Авиакомпания</option>
-              <option value="Аэропорт">Аэропорт</option>
-              <option value="Сервисная организация">Сервисная организация</option>
-              <option value="Производитель">Производитель</option>
-              <option value="Другое">Другое</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-              Адрес:
-            </label>
-            <input
-              type="text"
-              value={editedOrganization.address || ''}
-              onChange={(e) => handleChange('address', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                fontSize: '14px',
-              }}
-              placeholder="Введите адрес организации"
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-              Контактное лицо:
-            </label>
-            <input
-              type="text"
-              value={editedOrganization.contact || ''}
-              onChange={(e) => handleChange('contact', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                fontSize: '14px',
-              }}
-              placeholder="Введите ФИО контактного лица"
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-                Email:
-              </label>
-              <input
-                type="email"
-                value={editedOrganization.email || ''}
-                onChange={(e) => handleChange('email', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                }}
-                placeholder="email@example.com"
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-                Телефон:
-              </label>
-              <input
-                type="tel"
-                value={editedOrganization.phone || ''}
-                onChange={(e) => handleChange('phone', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                }}
-                placeholder="+7 (XXX) XXX-XX-XX"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '32px' }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#e0e0e0',
-              color: '#333',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-            }}
-          >
-            Отмена
-          </button>
-          <button
-            onClick={handleSave}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#1e3a5f',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-            }}
-          >
-            Сохранить
-          </button>
-        </div>
-      </div>
-    </div>
+    <Modal isOpen={isOpen} onClose={onClose} title={`Редактировать: ${organization?.name || ''}`} size="md"
+      footer={<><button onClick={onClose} className="btn-secondary">Отмена</button><button onClick={() => onSave(form)} className="btn-primary">Сохранить</button></>}>
+      <FormField label="Название" required><input value={form.name} onChange={e => set('name', e.target.value)} className="input-field" /></FormField>
+      <FormField label="Тип"><select value={form.kind} onChange={e => set('kind', e.target.value)} className="input-field"><option value="operator">Оператор</option><option value="mro">ТОиР</option><option value="authority">Орган власти</option></select></FormField>
+      <FormField label="ИНН"><input value={form.inn} onChange={e => set('inn', e.target.value)} className="input-field" /></FormField>
+      <FormField label="Адрес"><input value={form.address} onChange={e => set('address', e.target.value)} className="input-field" /></FormField>
+      <FormField label="Email"><input type="email" value={form.contact_email} onChange={e => set('contact_email', e.target.value)} className="input-field" /></FormField>
+      <FormField label="Телефон"><input value={form.contact_phone} onChange={e => set('contact_phone', e.target.value)} className="input-field" /></FormField>
+    </Modal>
   );
 }

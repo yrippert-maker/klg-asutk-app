@@ -1,10 +1,20 @@
+/**
+ * Sidebar navigation — RBAC-aware, Tailwind CSS.
+ * Разработчик: АО «REFLY»
+ */
 'use client';
 
-import Link from 'next/link';
+import { useState } from 'react';
+import { useDarkMode } from '@/hooks/useDarkMode';
+import Link from 'next/link'
+import GlobalSearch from './GlobalSearch';
 import { usePathname } from 'next/navigation';
 import NotificationBell from './NotificationBell';
+import { useAuth, UserRole } from '@/lib/auth-context';
 
-const menuItems = [
+interface MenuItem { name: string; path: string; icon: string; roles?: UserRole[]; }
+
+const menuItems: MenuItem[] = [
   { name: 'Дашборд', path: '/dashboard', icon: '📊' },
   { name: 'Организации', path: '/organizations', icon: '🏢' },
   { name: 'ВС и типы', path: '/aircraft', icon: '✈️' },
@@ -12,147 +22,99 @@ const menuItems = [
   { name: 'Чек-листы', path: '/checklists', icon: '✅' },
   { name: 'Аудиты', path: '/audits', icon: '🔍' },
   { name: 'Риски', path: '/risks', icon: '⚠️' },
-  { name: 'Пользователи', path: '/users', icon: '👥' },
+  { name: 'Пользователи', path: '/users', icon: '👥', roles: ['admin', 'authority_inspector'] },
   { name: 'Лётная годность', path: '/airworthiness', icon: '📜' },
+  { name: '📅 Календарь ТО', path: '/calendar', icon: '📅' },
+  { name: '🔧 Контроль ЛГ', path: '/airworthiness-core', icon: '🔧' },
   { name: 'Тех. обслуживание', path: '/maintenance', icon: '🔧' },
   { name: 'Дефекты', path: '/defects', icon: '🛠️' },
   { name: 'Модификации', path: '/modifications', icon: '⚙️' },
   { name: 'Документы', path: '/documents', icon: '📄' },
   { name: 'Inbox', path: '/inbox', icon: '📥' },
   { name: 'Нормативные документы', path: '/regulations', icon: '📚' },
-  { name: 'Мониторинг', path: '/monitoring', icon: '📈' },
-  { name: 'История изменений', path: '/audit-history', icon: '📝' },
-  { name: 'Задачи Jira', path: '/jira-tasks', icon: '🎯' },
-  { name: 'API Документация', path: '/api-docs', icon: '📖' },
+  { name: 'Мониторинг', path: '/monitoring', icon: '📈', roles: ['admin', 'authority_inspector'] },
+  { name: 'История изменений', path: '/audit-history', icon: '📝', roles: ['admin', 'authority_inspector'] },
+  { name: 'API Документация', path: '/api-docs', icon: '📖', roles: ['admin'] },
+  { name: '📊 Аналитика', path: '/analytics', icon: '📊', roles: ['admin', 'authority_inspector'] },
+  { name: '🎓 Персонал ПЛГ', path: '/personnel-plg', icon: '🎓' },
+  { name: '👤 Профиль', path: '/profile', icon: '👤' },
+  { name: '📚 Справка', path: '/help', icon: '📚' },
+  { name: '⚙️ Настройки', path: '/settings', icon: '⚙️' },
+  { name: '🏛️ ФГИС РЭВС', path: '/fgis-revs', icon: '🏛️', roles: ['admin'] },
+  { name: '🏛️ Панель ФАВТ', path: '/regulator', icon: '🏛️', roles: ['admin', 'favt_inspector'] },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { user, logout, hasRole } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { isDark, toggle: toggleDark } = useDarkMode();
+
+  const visibleItems = menuItems.filter(item => !item.roles || item.roles.some(r => hasRole(r)));
 
   return (
-    <aside
-        role="complementary"
-        aria-label="Боковая панель навигации"
-        style={{
-          width: '280px',
-          backgroundColor: '#1e3a5f',
-          color: 'white',
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'fixed',
-          left: 0,
-          top: 0,
-        }}
-      >
-      <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-          <div
-            style={{
-              width: '40px',
-              height: '40px',
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '20px',
-            }}
-          >
-            ✈️
-          </div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'white', letterSpacing: '2px' }}>
-            REFLY
-          </div>
+    <>
+      {/* Mobile hamburger */}
+      <button onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-50 w-10 h-10 bg-primary-500 text-white rounded-lg flex items-center justify-center text-xl shadow-lg"
+        aria-label="Открыть меню">☰</button>
+
+      {/* Mobile overlay */}
+      {mobileOpen && <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setMobileOpen(false)} />}
+
+      <aside role="complementary" aria-label="Навигация"
+        className={`w-[280px] bg-primary-500 text-white h-screen flex flex-col fixed left-0 top-0 z-50
+          transition-transform duration-300 lg:translate-x-0
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+
+      {/* Header */}
+      <div className="p-6 border-b border-white/10">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center text-xl">✈️</div>
+          <div className="text-2xl font-bold tracking-wider">REFLY</div>
         </div>
-        <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>
-          КОНТРОЛЬ ЛЁТНОЙ ГОДНОСТИ
-        </div>
-        <div style={{ fontSize: '12px', opacity: 0.8 }}>АСУ ТК</div>
+        <div className="text-xs opacity-80">КОНТРОЛЬ ЛЁТНОЙ ГОДНОСТИ</div>
+        <div className="text-xs opacity-80">АСУ ТК</div>
+        {user && (
+          <div className="mt-3 p-2 bg-white/[0.08] rounded-md">
+            <div className="text-sm font-bold truncate">{user.display_name}</div>
+            <div className="text-xs opacity-70 truncate">{user.role} · {user.organization_name || '—'}</div>
+          </div>
+        )}
       </div>
 
-      <nav 
-        role="navigation"
-        aria-label="Основная навигация"
-        style={{ flex: 1, padding: '16px 0' }}
-      >
-        {menuItems.map((item) => {
-          const isActive = pathname === item.path;
+      <div className="p-3"><GlobalSearch /></div>
+      {/* Navigation */}
+      <nav role="navigation" aria-label="Основная навигация" className="flex-1 py-4 overflow-y-auto">
+        {visibleItems.map((item) => {
+          const active = pathname === item.path;
           return (
-            <Link
-              key={item.path}
-              href={item.path}
-              aria-current={isActive ? 'page' : undefined}
-              aria-label={item.name}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '12px 24px',
-                color: 'white',
-                textDecoration: 'none',
-                backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
-                borderLeft: isActive ? '3px solid #4a90e2' : '3px solid transparent',
-                outline: 'none',
-                transition: 'background-color 0.2s',
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-              }}
-              onBlur={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
-            >
-              <span 
-                aria-hidden="true"
-                style={{ marginRight: '12px', fontSize: '18px' }}
-              >
-                {item.icon}
-              </span>
-              <span>{item.name}</span>
+            <Link key={item.path} href={item.path} aria-current={active ? 'page' : undefined}
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center px-6 py-3 text-white no-underline transition-colors
+                ${active ? 'bg-white/[0.15] border-l-[3px] border-accent-blue' : 'border-l-[3px] border-transparent hover:bg-white/[0.07]'}`}>
+              <span aria-hidden="true" className="mr-3 text-lg">{item.icon}</span>
+              <span className="text-sm">{item.name}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center' }}>
+      {/* Footer */}
+      <div className="p-4 border-t border-white/10">
+        <div className="mb-3 flex justify-center gap-2">
           <NotificationBell />
+          <button onClick={toggleDark} className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-sm hover:bg-white/20 transition-colors" title="Тема">
+            {isDark ? '☀️' : '🌙'}
+          </button>
         </div>
-        <button
-          aria-label="Выйти из системы"
-          style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: 'transparent',
-            border: '1px solid rgba(255,255,255,0.2)',
-            color: 'white',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            outline: 'none',
-            transition: 'background-color 0.2s',
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              // Здесь будет логика выхода
-            }
-          }}
-        >
-          <span aria-hidden="true" style={{ marginRight: '8px' }}>🚪</span>
-          Выйти
+        <button aria-label="Выйти" onClick={logout}
+          className="w-full py-3 bg-transparent border border-white/20 text-white rounded cursor-pointer
+                     flex items-center justify-center hover:bg-white/10 transition-colors">
+          <span aria-hidden="true" className="mr-2">🚪</span>Выйти
         </button>
       </div>
     </aside>
+    </>
   );
 }

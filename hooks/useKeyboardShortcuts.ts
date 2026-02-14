@@ -1,117 +1,84 @@
 /**
- * Хук для клавиатурных сокращений (горячие клавиши)
+ * Global keyboard shortcuts — КЛГ АСУ ТК
+ * Ctrl+K: Focus search
+ * Ctrl+N: New item (context-dependent)
+ * Ctrl+/: Show shortcuts help
+ * Escape: Close modals
  */
 'use client';
+import { useEffect, useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-import { useEffect } from 'react';
-import { useLocalStorage } from './useLocalStorage';
-
-export interface KeyboardShortcut {
-  key: string;
-  ctrl?: boolean;
-  shift?: boolean;
-  alt?: boolean;
-  meta?: boolean;
-  handler: () => void;
-  description?: string;
+interface ShortcutConfig {
+  onNewItem?: () => void;
 }
 
-/**
- * Основной хук для горячих клавиш
- */
-export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      for (const shortcut of shortcuts) {
-        const ctrlMatch = shortcut.ctrl ? event.ctrlKey : !event.ctrlKey;
-        const shiftMatch = shortcut.shift ? event.shiftKey : !event.shiftKey;
-        const altMatch = shortcut.alt ? event.altKey : !event.altKey;
-        const metaMatch = shortcut.meta ? event.metaKey : !event.metaKey;
-        const keyMatch =
-          event.key === shortcut.key || event.key.toLowerCase() === shortcut.key.toLowerCase();
+export function useKeyboardShortcuts(config?: ShortcutConfig) {
+  const router = useRouter();
+  const [showHelp, setShowHelp] = useState(false);
 
-        if (ctrlMatch && shiftMatch && altMatch && metaMatch && keyMatch) {
-          event.preventDefault();
-          shortcut.handler();
-          break;
-        }
-      }
-    };
+  const handler = useCallback((e: KeyboardEvent) => {
+    const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [shortcuts]);
-}
+    // Ctrl+K or Cmd+K: Focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      const search = document.querySelector<HTMLInputElement>('input[placeholder*="Поиск"]');
+      search?.focus();
+      return;
+    }
 
-/**
- * Хук для глобальных горячих клавиш приложения
- */
-export function useGlobalShortcuts(options: {
-  onSearch?: () => void;
-  onCreateNew?: () => void;
-  onSave?: () => void;
-  onClose?: () => void;
-}) {
+    // Ctrl+/ : Toggle shortcuts help
+    if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+      e.preventDefault();
+      setShowHelp(s => !s);
+      return;
+    }
 
-  useKeyboardShortcuts([
-    {
-      key: 'k',
-      ctrl: true,
-      handler: () => {
-        options.onSearch?.();
-      },
-      description: 'Глобальный поиск',
-    },
-    {
-      key: 'n',
-      ctrl: true,
-      handler: () => {
-        options.onCreateNew?.();
-      },
-      description: 'Создать новую запись',
-    },
-    {
-      key: 's',
-      ctrl: true,
-      handler: () => {
-        options.onSave?.();
-      },
-      description: 'Сохранить форму',
-    },
-    {
-      key: 'Escape',
-      handler: () => {
-        options.onClose?.();
-      },
-      description: 'Закрыть модальное окно',
-    },
-  ]);
-}
+    if (isInput) return;
 
-// Компонент KeyboardShortcutsHelp вынесен в components/KeyboardShortcutsHelp.tsx
-
-/**
- * Хук для показа/скрытия подсказок
- */
-export function useShortcutsHelp() {
-  const [showHelp, setShowHelp] = useLocalStorage<boolean>('showShortcutsHelp', false);
+    // Navigation shortcuts (no modifier)
+    switch (e.key) {
+      case 'g': // go to...
+        if (e.shiftKey) return;
+        // Wait for next key
+        const goHandler = (e2: KeyboardEvent) => {
+          document.removeEventListener('keydown', goHandler);
+          switch (e2.key) {
+            case 'd': router.push('/dashboard'); break;
+            case 'a': router.push('/airworthiness-core'); break;
+            case 'm': router.push('/maintenance'); break;
+            case 'p': router.push('/personnel-plg'); break;
+            case 'c': router.push('/calendar'); break;
+            case 'f': router.push('/defects'); break;
+            case 's': router.push('/settings'); break;
+          }
+        };
+        document.addEventListener('keydown', goHandler, { once: true });
+        break;
+      case '?':
+        setShowHelp(s => !s);
+        break;
+    }
+  }, [router]);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Ctrl+? или Cmd+? для показа подсказок
-      if ((event.ctrlKey || event.metaKey) && event.key === '?') {
-        event.preventDefault();
-        setShowHelp((prev) => !prev);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [setShowHelp]);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [handler]);
 
   return { showHelp, setShowHelp };
 }
+
+export const SHORTCUTS = [
+  { keys: 'Ctrl+K', desc: 'Фокус на поиске' },
+  { keys: 'Ctrl+/', desc: 'Показать горячие клавиши' },
+  { keys: 'g → d', desc: 'Перейти к Dashboard' },
+  { keys: 'g → a', desc: 'Контроль ЛГ' },
+  { keys: 'g → m', desc: 'Наряды на ТО' },
+  { keys: 'g → p', desc: 'Персонал ПЛГ' },
+  { keys: 'g → c', desc: 'Календарь ТО' },
+  { keys: 'g → f', desc: 'Дефекты' },
+  { keys: 'g → s', desc: 'Настройки' },
+  { keys: '?', desc: 'Справка по горячим клавишам' },
+];

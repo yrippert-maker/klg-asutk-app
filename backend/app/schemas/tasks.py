@@ -1,39 +1,17 @@
-
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from datetime import datetime
-from typing import List
+from typing import Optional
 
-from app.db.session import get_db
-from app.core.auth import get_current_user
-from app.models.cert_application import CertApplication
-from app.schemas.tasks import TaskOut
+class TaskOut(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    status: str = "pending"
+    priority: str = "medium"
+    due_date: Optional[datetime] = None
+    assigned_to: Optional[str] = None
+    application_id: Optional[int] = None
+    created_at: Optional[datetime] = None
 
-router = APIRouter(prefix="/api/v1", tags=["tasks"])
-
-
-@router.get("/tasks", response_model=List[TaskOut])
-def list_tasks(
-    state: str = Query(default="open"),
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    q = db.query(CertApplication)
-
-    if state == "open":
-        q = q.filter(CertApplication.status.in_(["submitted", "under_review", "remarks"]))
-
-    apps = q.order_by(CertApplication.updated_at.desc()).all()
-
-    return [
-        TaskOut(
-            entity_type="cert_application",
-            entity_id=a.id,
-            title=f"Заявка №{a.number}",
-            status=a.status,
-            due_at=a.remarks_deadline_at,
-            priority="high" if a.remarks_deadline_at and a.remarks_deadline_at <= datetime.utcnow() else "normal",
-            updated_at=a.updated_at,
-        )
-        for a in apps
-    ]
+    class Config:
+        from_attributes = True

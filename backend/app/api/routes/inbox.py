@@ -15,6 +15,8 @@ from fastapi.responses import FileResponse
 
 from app.core.config import settings
 from app.api.deps import get_current_user
+from app.api.helpers import audit as audit_log
+from app.db.session import get_db as get_pg_db
 
 router = APIRouter(prefix="/inbox", tags=["inbox"])
 
@@ -127,6 +129,14 @@ def upload_file(file: UploadFile = File(...), user=Depends(get_current_user)):
     finally:
         conn.close()
 
+    # Audit log
+    try:
+        pg_db = next(get_pg_db())
+        audit_log(pg_db, user, "create", "inbox_file", file_id, description=f"Uploaded {file.filename}")
+        pg_db.commit()
+    except Exception:
+        pass
+
     return {
         "id": file_id,
         "originalName": file.filename or "file",
@@ -170,4 +180,11 @@ def delete_file(file_id: str, user=Depends(get_current_user)):
         conn.commit()
     finally:
         conn.close()
+    # Audit log
+    try:
+        pg_db = next(get_pg_db())
+        audit_log(pg_db, user, "delete", "inbox_file", file_id, description=f"Deleted file")
+        pg_db.commit()
+    except Exception:
+        pass
     return {"success": True}

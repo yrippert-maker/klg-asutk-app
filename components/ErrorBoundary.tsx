@@ -102,80 +102,38 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '400px',
-            padding: '40px',
-            textAlign: 'center',
-          }}
+          className="p-5"
         >
           <div
-            style={{
-              maxWidth: '600px',
-              backgroundColor: 'white',
-              padding: '32px',
-              borderRadius: '8px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            }}
+            className="p-5"
           >
             <div
-              style={{
-                fontSize: '48px',
-                marginBottom: '16px',
-              }}
+              className="my-4"
             >
               ⚠️
             </div>
             <h2
-              style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                marginBottom: '12px',
-                color: '#333',
-              }}
+              className="text-gray-600"
             >
               Произошла ошибка
             </h2>
             <p
-              style={{
-                fontSize: '16px',
-                color: '#666',
-                marginBottom: '24px',
-                lineHeight: '1.5',
-              }}
+              className="text-gray-600"
             >
               К сожалению, произошла непредвиденная ошибка. Мы уже работаем над её исправлением.
             </p>
 
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <details
-                style={{
-                  marginBottom: '24px',
-                  padding: '16px',
-                  backgroundColor: '#f5f5f5',
-                  borderRadius: '4px',
-                  textAlign: 'left',
-                }}
+                className="p-5"
               >
                 <summary
-                  style={{
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    marginBottom: '8px',
-                  }}
+                  className="my-4"
                 >
                   Детали ошибки (только в режиме разработки)
                 </summary>
                 <pre
-                  style={{
-                    fontSize: '12px',
-                    overflow: 'auto',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                  }}
+                  className="text-sm"
                 >
                   {this.state.error.toString()}
                   {this.state.errorInfo?.componentStack}
@@ -183,33 +141,16 @@ export class ErrorBoundary extends Component<Props, State> {
               </details>
             )}
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <div className="flex gap-3 justify-center">
               <button
                 onClick={this.handleReset}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#1e3a5f',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                }}
+                className="p-5"
               >
                 Попробовать снова
               </button>
               <button
                 onClick={() => window.location.href = '/'}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: 'transparent',
-                  color: '#1e3a5f',
-                  border: '1px solid #1e3a5f',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                }}
+                className="p-5"
               >
                 На главную
               </button>
@@ -238,3 +179,4 @@ export function withErrorBoundary<P extends object>(
     );
   };
 }
+export default ErrorBoundary;

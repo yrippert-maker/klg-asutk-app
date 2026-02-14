@@ -1,60 +1,31 @@
-/**
- * Компонент для отображения подсказок по горячим клавишам
- */
 'use client';
+import { Modal } from '@/components/ui';
 
-export default function KeyboardShortcutsHelp() {
-  const shortcuts: Array<{ keys: string; description: string }> = [
-    { keys: 'Ctrl+K', description: 'Глобальный поиск' },
-    { keys: 'Ctrl+N', description: 'Создать новую запись' },
-    { keys: 'Ctrl+S', description: 'Сохранить форму' },
-    { keys: 'Esc', description: 'Закрыть модальное окно' },
-  ];
+interface Props { isOpen: boolean; onClose: () => void; }
 
+const shortcuts = [
+  { keys: '⌘/Ctrl + K', action: 'Глобальный поиск' },
+  { keys: '⌘/Ctrl + N', action: 'Создать новый объект' },
+  { keys: '⌘/Ctrl + ,', action: 'Настройки' },
+  { keys: '⌘/Ctrl + .', action: 'AI Ассистент' },
+  { keys: 'Escape', action: 'Закрыть модальное окно' },
+  { keys: '?', action: 'Показать горячие клавиши' },
+  { keys: '←/→', action: 'Навигация по страницам' },
+  { keys: '⌘/Ctrl + E', action: 'Экспорт данных' },
+];
+
+export default function KeyboardShortcutsHelp({ isOpen, onClose }: Props) {
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        backgroundColor: 'white',
-        padding: '16px',
-        borderRadius: '8px',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-        zIndex: 1000,
-        maxWidth: '300px',
-      }}
-    >
-      <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>
-        Горячие клавиши
-      </h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {shortcuts.map((shortcut, index) => (
-          <div
-            key={index}
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: '12px',
-            }}
-          >
-            <span style={{ color: '#666' }}>{shortcut.description}</span>
-            <kbd
-              style={{
-                padding: '4px 8px',
-                backgroundColor: '#f5f5f5',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                fontFamily: 'monospace',
-                fontSize: '11px',
-              }}
-            >
-              {shortcut.keys}
-            </kbd>
+    <Modal isOpen={isOpen} onClose={onClose} title="⌨️ Горячие клавиши" size="sm">
+      <div className="space-y-1">
+        {shortcuts.map(s => (
+          <div key={s.keys} className="flex justify-between items-center py-2 border-b border-gray-50">
+            <span className="text-sm">{s.action}</span>
+            <kbd className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-mono">{s.keys}</kbd>
           </div>
         ))}
       </div>
-    </div>
+      <p className="text-xs text-gray-400 mt-4">Нажмите ? в любом месте для вызова этого окна</p>
+    </Modal>
   );
 }

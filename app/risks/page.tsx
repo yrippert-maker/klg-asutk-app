@@ -1,280 +1,41 @@
 'use client';
-
-import { useState } from 'react';
-import Sidebar from '@/components/Sidebar';
-import RiskDetailsModal from '@/components/RiskDetailsModal';
-import Logo from '@/components/Logo';
-
-interface Risk {
-  id: string;
-  title: string;
-  level: 'Низкий' | 'Средний' | 'Высокий' | 'Критический';
-  category: string;
-  aircraft: string;
-  status: string;
-  date: string;
-  description?: string;
-  impact?: string;
-  probability?: string;
-  mitigation?: string;
-  responsible?: string;
-  deadline?: string;
-}
+import { useState, useEffect } from 'react';
+import { PageLayout, DataTable, StatusBadge, EmptyState } from '@/components/ui';
 
 export default function RisksPage() {
-  const [filter, setFilter] = useState<'all' | 'critical' | 'high'>('all');
-  const [risks, setRisks] = useState<Risk[]>([
-    {
-      id: '1',
-      title: 'Превышение межремонтного ресурса',
-      level: 'Высокий',
-      category: 'Техническое состояние',
-      aircraft: 'RA-12345',
-      status: 'Требует внимания',
-      date: '2025-01-20',
-      description: 'Воздушное судно RA-12345 превысило установленный межремонтный ресурс на 150 часов. Требуется немедленное проведение планового технического обслуживания для обеспечения безопасности полетов.',
-      impact: 'Высокое влияние на безопасность полетов. Возможны ограничения на эксплуатацию воздушного судна до проведения ремонта.',
-      probability: 'Высокая вероятность возникновения инцидентов при продолжении эксплуатации без ремонта.',
-      mitigation: '1. Немедленно ограничить эксплуатацию воздушного судна\n2. Назначить ответственного за проведение ремонта\n3. Провести плановое техническое обслуживание в течение 7 дней\n4. Обновить документацию после завершения ремонта',
-      responsible: 'Иванов И.И., главный инженер',
-      deadline: '2025-01-27',
-    },
-    {
-      id: '2',
-      title: 'Несоответствие документации',
-      level: 'Средний',
-      category: 'Документация',
-      aircraft: 'RA-67890',
-      status: 'В работе',
-      date: '2025-01-19',
-      description: 'Обнаружены расхождения между фактическим состоянием воздушного судна и документацией. Отсутствуют записи о последнем техническом обслуживании.',
-      impact: 'Среднее влияние. Может привести к задержкам при проверках и аудитах.',
-      probability: 'Средняя вероятность возникновения проблем при проверках.',
-      mitigation: '1. Провести инвентаризацию документации\n2. Восстановить недостающие записи\n3. Согласовать документацию с фактическим состоянием\n4. Внедрить систему контроля документации',
-      responsible: 'Петров П.П., специалист по документации',
-      deadline: '2025-01-25',
-    },
-    {
-      id: '3',
-      title: 'Критическая неисправность системы управления',
-      level: 'Критический',
-      category: 'Техническое состояние',
-      aircraft: 'RA-11111',
-      status: 'Требует внимания',
-      date: '2025-01-21',
-      description: 'Обнаружена критическая неисправность в системе управления воздушным судном. Требуется немедленное устранение.',
-      impact: 'Критическое влияние на безопасность полетов. Эксплуатация воздушного судна запрещена до устранения неисправности.',
-      probability: 'Очень высокая вероятность аварии при продолжении эксплуатации.',
-      mitigation: '1. Немедленно запретить эксплуатацию воздушного судна\n2. Провести полную диагностику системы управления\n3. Заменить неисправные компоненты\n4. Провести тестовые полеты после ремонта',
-      responsible: 'Сидоров С.С., главный инженер',
-      deadline: '2025-01-23',
-    },
-  ]);
-
-  const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleSaveRisk = (updatedRisk: Risk) => {
-    setRisks(prev => prev.map(r => r.id === updatedRisk.id ? updatedRisk : r));
-    setSelectedRisk(updatedRisk);
-  };
-
-  const filteredRisks = risks.filter(risk => {
-    if (filter === 'all') {
-      return true;
-    }
-    if (filter === 'critical') {
-      return risk.level === 'Критический';
-    }
-    if (filter === 'high') {
-      return risk.level === 'Высокий';
-    }
-    return true;
-  });
-
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'Критический': return '#f44336';
-      case 'Высокий': return '#ff9800';
-      case 'Средний': return '#ffc107';
-      case 'Низкий': return '#4caf50';
-      default: return '#666';
-    }
-  };
-
+  const [risks, setRisks] = useState([] as any[]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('');
+  useEffect(() => {
+    setLoading(true);
+    const url = '/api/v1/risk-alerts' + (filter ? '?severity=' + filter : '');
+    fetch(url).then(r => r.json()).then(d => { setRisks(d.items || []); });
+  }, [filter]);
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar />
-      <div id="main-content" role="main" style={{ marginLeft: '280px', flex: 1, padding: '32px' }}>
-        <div style={{ marginBottom: '32px' }}>
-          <Logo size="large" />
-          <p style={{ fontSize: '16px', color: '#666', marginTop: '16px', marginBottom: '24px' }}>
-            Система контроля лётной годности воздушных судов · Безопасность и качество
-          </p>
-        </div>
-
-        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
-              Риски
-            </h2>
-            <p style={{ fontSize: '14px', color: '#666' }}>
-              Управление рисками и оценка безопасности воздушных судов
-            </p>
-          </div>
-          <div>
-            <button style={{
-              padding: '10px 20px',
-              backgroundColor: '#1e3a5f',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-            }}>
-              Добавить риск
-            </button>
-          </div>
-        </div>
-
-        <div style={{ marginBottom: '24px', display: 'flex', gap: '8px' }}>
-          <button
-            onClick={() => setFilter('all')}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: filter === 'all' ? '#1e3a5f' : 'transparent',
-              color: filter === 'all' ? 'white' : '#1e3a5f',
-              border: '1px solid #1e3a5f',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-            }}
-          >
-            Все
-          </button>
-          <button
-            onClick={() => setFilter('critical')}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: filter === 'critical' ? '#f44336' : 'transparent',
-              color: filter === 'critical' ? 'white' : '#1e3a5f',
-              border: '1px solid #1e3a5f',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-            }}
-          >
-            Критические
-          </button>
-          <button
-            onClick={() => setFilter('high')}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: filter === 'high' ? '#ff9800' : 'transparent',
-              color: filter === 'high' ? 'white' : '#1e3a5f',
-              border: '1px solid #1e3a5f',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-            }}
-          >
-            Высокие
-          </button>
-        </div>
-
-        {filteredRisks.length === 0 ? (
-          <div style={{
-            backgroundColor: '#e3f2fd',
-            padding: '40px',
-            borderRadius: '8px',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>
-              {filter === 'critical' && 'Критические риски не найдены'}
-              {filter === 'high' && 'Высокие риски не найдены'}
-              {filter === 'all' && 'Риски не найдены'}
-            </div>
-            <div style={{ fontSize: '14px', color: '#666' }}>
-              {filter === 'critical' && 'В данный момент нет критических рисков'}
-              {filter === 'high' && 'В данный момент нет высоких рисков'}
-              {filter === 'all' && 'Добавьте риски для отображения'}
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {filteredRisks.map(risk => (
-            <div key={risk.id} style={{
-              backgroundColor: 'white',
-              padding: '24px',
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              borderLeft: `4px solid ${getLevelColor(risk.level)}`,
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
-                <div>
-                  <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>
-                    {risk.title}
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
-                    Категория: {risk.category} | ВС: {risk.aircraft}
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#666' }}>
-                    Дата выявления: {risk.date}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <span style={{
-                    padding: '6px 12px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    backgroundColor: getLevelColor(risk.level),
-                    color: 'white',
-                  }}>
-                    {risk.level}
-                  </span>
-                  <span style={{
-                    padding: '6px 12px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    backgroundColor: '#e0e0e0',
-                    color: '#333',
-                  }}>
-                    {risk.status}
-                  </span>
-                  <button
-                    onClick={() => {
-                      setSelectedRisk(risk);
-                      setIsModalOpen(true);
-                    }}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#1e3a5f',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                    }}
-                  >
-                    Открыть
-                  </button>
-                </div>
-              </div>
-            </div>
-            ))}
-          </div>
-        )}
-
-        <RiskDetailsModal
-          isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setSelectedRisk(null);
-          }}
-          risk={selectedRisk}
-          onSave={handleSaveRisk}
-        />
+    <>
+    {loading && <div className="fixed inset-0 bg-white/50 z-50 flex items-center justify-center"><div className="text-gray-500">⏳ Загрузка...</div></div>}
+      <PageLayout title="⚠️ Управление рисками" subtitle="ICAO Annex 19; ВК РФ ст. 24.1; ICAO Doc 9859">
+      <div className="flex gap-2 mb-4">
+        {['', 'critical', 'high', 'medium', 'low'].map(s => (
+          <button key={s} onClick={() => setFilter(s)}
+            className={`px-3 py-1.5 rounded text-xs ${filter === s ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>{s || 'Все'}</button>
+        ))}
       </div>
-    </div>
+      {risks.length > 0 ? (
+        <DataTable columns={[
+          { key: 'title', label: 'Риск' },
+          { key: 'severity', label: 'Серьёзность', render: (v: string) => (
+            <StatusBadge status={v} colorMap={{ critical: 'bg-red-500', high: 'bg-orange-500', medium: 'bg-yellow-500', low: 'bg-green-500' }} />
+          )},
+          { key: 'category', label: 'Категория' },
+          { key: 'status', label: 'Статус', render: (v: string) => (
+            <StatusBadge status={v} colorMap={{ open: 'bg-red-500', mitigating: 'bg-yellow-500', resolved: 'bg-green-500', accepted: 'bg-gray-400' }}
+              labelMap={{ open: 'Открыт', mitigating: 'Меры', resolved: 'Устранён', accepted: 'Принят' }} />
+          )},
+          { key: 'created_at', label: 'Дата', render: (v: string) => v ? new Date(v).toLocaleDateString('ru-RU') : '—' },
+        ]} data={risks} />
+      ) : <EmptyState message="Нет зарегистрированных рисков" />}
+    </PageLayout>
+    </>
   );
 }

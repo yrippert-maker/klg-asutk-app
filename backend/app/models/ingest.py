@@ -1,3 +1,4 @@
+from datetime import datetime, date
 from sqlalchemy import String, Text, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 

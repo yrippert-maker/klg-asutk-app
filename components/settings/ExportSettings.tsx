@@ -10,13 +10,13 @@ interface ExportSettingsProps {
 export default function ExportSettings({ preferences, onChange }: ExportSettingsProps) {
   return (
     <div>
-      <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '24px' }}>
+      <h3 className="">
         Настройки экспорта
       </h3>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div className="flex gap-3 items-center">
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+          <label>
             Формат экспорта по умолчанию
           </label>
           <select
@@ -27,13 +27,7 @@ export default function ExportSettings({ preferences, onChange }: ExportSettings
                 export: { ...prev.export, defaultFormat: e.target.value as UserPreferences['export']['defaultFormat'] },
               }))
             }
-            style={{
-              width: '100%',
-              padding: '8px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '14px',
-            }}
+           
           >
             <option value="excel">Excel (.xlsx)</option>
             <option value="csv">CSV</option>
@@ -42,7 +36,7 @@ export default function ExportSettings({ preferences, onChange }: ExportSettings
           </select>
         </div>
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+        <label className="flex gap-3 items-center">
           <input
             type="checkbox"
             checked={preferences.export.includeHeaders}
@@ -52,17 +46,17 @@ export default function ExportSettings({ preferences, onChange }: ExportSettings
                 export: { ...prev.export, includeHeaders: e.target.checked },
               }))
             }
-            style={{ width: '18px', height: '18px' }}
+            className="w-full"
           />
           <div>
-            <div style={{ fontSize: '14px', fontWeight: '500' }}>Включать заголовки</div>
-            <div style={{ fontSize: '12px', color: '#666' }}>
+            <div className="">Включать заголовки</div>
+            <div className="">
               Добавлять заголовки колонок в экспортируемые файлы
             </div>
           </div>
         </label>
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+        <label className="flex gap-3 items-center">
           <input
             type="checkbox"
             checked={preferences.export.autoExport}
@@ -72,11 +66,11 @@ export default function ExportSettings({ preferences, onChange }: ExportSettings
                 export: { ...prev.export, autoExport: e.target.checked },
               }))
             }
-            style={{ width: '18px', height: '18px' }}
+            className="w-full"
           />
           <div>
-            <div style={{ fontSize: '14px', fontWeight: '500' }}>Автоматический экспорт</div>
-            <div style={{ fontSize: '12px', color: '#666' }}>
+            <div className="">Автоматический экспорт</div>
+            <div className="">
               Планировать автоматический экспорт данных
             </div>
           </div>

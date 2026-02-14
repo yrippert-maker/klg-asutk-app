@@ -17,13 +17,13 @@ export default function NotificationSettings({ preferences, onChange }: Notifica
 
   return (
     <div>
-      <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '24px' }}>
+      <h3 className="">
         Настройки уведомлений
       </h3>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div className="flex gap-3 items-center">
         {items.map(({ key, title, desc }) => (
-          <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+          <label key={key} className="flex gap-3 items-center">
             <input
               type="checkbox"
               checked={preferences.notifications[key]}
@@ -33,11 +33,11 @@ export default function NotificationSettings({ preferences, onChange }: Notifica
                   notifications: { ...prev.notifications, [key]: e.target.checked },
                 }))
               }
-              style={{ width: '18px', height: '18px' }}
+              className="w-full"
             />
             <div>
-              <div style={{ fontSize: '14px', fontWeight: '500' }}>{title}</div>
-              <div style={{ fontSize: '12px', color: '#666' }}>{desc}</div>
+              <div className="">{title}</div>
+              <div className="">{desc}</div>
             </div>
           </label>
         ))}

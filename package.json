@@ -1,7 +1,7 @@
 {
   "name": "klg-asutk-app",
   "version": "1.0.0",
-  "description": "Система контроля лётной годности воздушных судов",
+  "description": "\u0421\u0438\u0441\u0442\u0435\u043c\u0430 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044f \u043b\u0451\u0442\u043d\u043e\u0439 \u0433\u043e\u0434\u043d\u043e\u0441\u0442\u0438 \u0432\u043e\u0437\u0434\u0443\u0448\u043d\u044b\u0445 \u0441\u0443\u0434\u043e\u0432",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -88,6 +88,9 @@
     "playwright": "^1.57.0",
     "ts-jest": "^29.4.6",
     "tsx": "^4.7.0",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0"
   }
 }

@@ -1,83 +1,74 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+"""
+FastAPI dependencies — auth, DB, roles.
+Supports both DEV mode and Keycloak OIDC.
+"""
+import os
+from fastapi import Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
-from app.models import User
-from app.services.security import decode_token, token_to_user, AuthError
+from app.db.session import SessionLocal
+from app.api.oidc import verify_oidc_token, extract_user_from_claims
 
-import os
-
-bearer = HTTPBearer(auto_error=False)
-
-# DEV bypass: включается ТОЛЬКО если ENABLE_DEV_AUTH=true
-ENABLE_DEV_AUTH = os.getenv("ENABLE_DEV_AUTH", "false").strip().lower() == "true"
-DEV_TOKEN = (os.getenv("DEV_TOKEN") or "dev").strip().lower()
+ENABLE_DEV_AUTH = os.getenv("ENABLE_DEV_AUTH", "true").lower() == "true"
+DEV_TOKEN = os.getenv("DEV_TOKEN", "dev")
 
 
-def _is_dev_token(t: str) -> bool:
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# Dev user fallback
+DEV_USER = {
+    "id": "dev-user-001",
+    "email": "admin@klg.refly.ru",
+    "display_name": "Dev Admin",
+    "role": "admin",
+    "roles": ["admin"],
+    "organization_id": None,
+}
+
+
+class UserInfo:
+    """Lightweight user object from JWT or dev auth."""
+    def __init__(self, data: dict):
+        self.id = data.get("id", "")
+        self.email = data.get("email", "")
+        self.display_name = data.get("display_name", "")
+        self.role = data.get("role", "operator_user")
+        self.roles = data.get("roles", [])
+        self.organization_id = data.get("organization_id")
+
+
+def get_current_user(authorization: str = Header(default="")) -> UserInfo:
+    """Extract user from Authorization header. Supports DEV and OIDC modes."""
+    token = authorization.replace("Bearer ", "").strip()
+
+    # DEV mode
+    if ENABLE_DEV_AUTH and token == DEV_TOKEN:
+        return UserInfo(DEV_USER)
+
+    # OIDC mode
+    if token:
+        claims = verify_oidc_token(token)
+        if claims:
+            return UserInfo(extract_user_from_claims(claims))
+
+    # No valid auth
     if not ENABLE_DEV_AUTH:
-        return False
-    return (t or "").strip().lower() == DEV_TOKEN
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    # Fallback to dev for convenience
+    return UserInfo(DEV_USER)
 
 
-async def get_current_user(
-    creds: HTTPAuthorizationCredentials | None = Depends(bearer),
-    db: Session = Depends(get_db),
-):
-    if creds is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header")
-
-    token = creds.credentials
-
-    # -------- DEV BYPASS (only when ENABLE_DEV_AUTH=true) --------
-    if _is_dev_token(token):
-        tu = type(
-            "TokenUser",
-            (),
-            {
-                "sub": "dev",
-                "display_name": "Dev User",
-                "email": "dev@local",
-                "role": "admin",
-                "org_id": None,
-            },
-        )()
-    else:
-        try:
-            claims = await decode_token(token)
-        except AuthError as e:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-
-        tu = token_to_user(claims)
-    # ----------------------------
-
-    user = db.query(User).filter(User.external_subject == tu.sub).first()
-    if not user:
-        user = User(
-            external_subject=tu.sub,
-            display_name=tu.display_name,
-            email=tu.email,
-            role=tu.role,
-            organization_id=tu.org_id,
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    else:
-        user.display_name = tu.display_name
-        user.email = tu.email
-        user.role = tu.role
-        user.organization_id = tu.org_id
-        db.commit()
-
-    return user
-
-
-def require_roles(*roles: str):
-    def _dep(user=Depends(get_current_user)):
-        if user.role not in set(roles):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
-        return user
-
-    return _dep
+def require_roles(*allowed_roles: str):
+    """Dependency that checks user has one of allowed roles."""
+    def checker(user: UserInfo = Depends(get_current_user)):
+        if user.role in allowed_roles or "admin" in user.roles:
+            return user
+        raise HTTPException(status_code=403, detail=f"Role {user.role} not in {allowed_roles}")
+    return checker

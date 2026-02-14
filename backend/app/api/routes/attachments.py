@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 import os
 
 from app.api.deps import get_current_user
+from app.api.helpers import audit
 from app.db.session import get_db
 from app.models import Attachment
 from app.schemas.attachment import AttachmentOut
@@ -24,6 +25,7 @@ async def upload_attachment(owner_kind: str, owner_id: str, file: UploadFile = F
         uploaded_by_user_id=user.id,
     )
     db.add(att)
+    audit(db, user, "create", "attachment", description=f"Uploaded {filename} for {owner_kind}/{owner_id}")
     db.commit()
     db.refresh(att)
     return att
@@ -60,6 +62,7 @@ def delete_attachment(attachment_id: str, db: Session = Depends(get_db), user=De
             print(f"Error deleting file {att.storage_path}: {e}")
     
     # Удаляем запись из БД
+    audit(db, user, "delete", "attachment", attachment_id, description=f"Deleted {att.filename}")
     db.delete(att)
     db.commit()
     return None

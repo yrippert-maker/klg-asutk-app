@@ -1,15 +1,11 @@
-"""
-API routes для управления организациями.
-
-Соответствует требованиям ТЗ: управление организациями (операторы, MRO, органы власти).
-"""
-
+"""Organizations API — refactored: pagination, audit, DRY helpers."""
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import get_current_user, require_roles
+from app.api.helpers import audit, diff_changes, is_authority, paginate_query
 from app.db.session import get_db
 from app.models import Organization, User, Aircraft, CertApplication
 from app.schemas.organization import OrganizationCreate, OrganizationOut, OrganizationUpdate
@@ -18,118 +14,76 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["organizations"])
 
 
-@router.get("/organizations", response_model=list[OrganizationOut])
+def _base_query(db: Session, user):
+    q = db.query(Organization)
+    if not is_authority(user) and user.organization_id:
+        q = q.filter(Organization.id == user.organization_id)
+    return q
+
+
+@router.get("/organizations")
 def list_organizations(
-    q: str | None = Query(None, description="Search by organization name"),
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    q: str | None = Query(None, description="Search by name"),
+    page: int = Query(1, ge=1), per_page: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db), user=Depends(get_current_user),
 ):
-    """Получить список организаций.
-    
-    Authority видит все; остальные видят только свою организацию.
-    Поддерживает поиск по названию организации.
-    """
-    try:
-        query = db.query(Organization)
-        if user.role not in {"admin", "authority_inspector"} and user.organization_id:
-            query = query.filter(Organization.id == user.organization_id)
-        if q:
-            query = query.filter(Organization.name.ilike(f"%{q}%"))
-        orgs = query.order_by(Organization.name).all()
-        result = []
-        for org in orgs:
-            try:
-                result.append(OrganizationOut.model_validate(org))
-            except Exception as e:
-                logger.error(f"Ошибка при сериализации организации {org.id}: {str(e)}", exc_info=True)
-                # Пропускаем проблемную организацию, но продолжаем обработку остальных
-                continue
-        logger.info(f"Успешно возвращено {len(result)} организаций из {len(orgs)}")
-        return result
-    except Exception as e:
-        import traceback
-        logger.error(f"Ошибка при получении списка организаций: {str(e)}", exc_info=True)
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при получении списка организаций: {str(e)}"
-        )
+    """List organizations with pagination and search."""
+    query = _base_query(db, user)
+    if q:
+        query = query.filter(Organization.name.ilike(f"%{q}%"))
+    query = query.order_by(Organization.name)
+    result = paginate_query(query, page, per_page)
+    result["items"] = [OrganizationOut.model_validate(o) for o in result["items"]]
+    return result
 
 
-@router.post(
-    "/organizations",
-    response_model=OrganizationOut,
-    dependencies=[Depends(require_roles("admin", "authority_inspector"))],
-)
-def create_organization(payload: OrganizationCreate, db: Session = Depends(get_db)):
-    """Создать новую организацию."""
+@router.post("/organizations", response_model=OrganizationOut, status_code=201,
+             dependencies=[Depends(require_roles("admin", "authority_inspector"))])
+def create_organization(payload: OrganizationCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
     org = Organization(**payload.model_dump())
     db.add(org)
-    db.commit()
-    db.refresh(org)
+    audit(db, user, "create", "organization", description=f"Created org: {payload.name}")
+    db.commit(); db.refresh(org)
     return OrganizationOut.model_validate(org)
 
 
 @router.get("/organizations/{org_id}", response_model=OrganizationOut)
 def get_organization(org_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    """Получить детали организации по ID."""
     org = db.query(Organization).filter(Organization.id == org_id).first()
-    if not org:
-        raise HTTPException(status_code=404, detail="Not found")
-    if user.role not in {"admin", "authority_inspector"} and user.organization_id != org_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
+    if not org: raise HTTPException(404, "Not found")
+    if not is_authority(user) and user.organization_id != org_id:
+        raise HTTPException(403, "Forbidden")
     return OrganizationOut.model_validate(org)
 
 
-@router.patch(
-    "/organizations/{org_id}",
-    response_model=OrganizationOut,
-    dependencies=[Depends(require_roles("admin", "authority_inspector"))],
-)
-def update_organization(org_id: str, payload: OrganizationUpdate, db: Session = Depends(get_db)):
-    """Обновить организацию."""
+@router.patch("/organizations/{org_id}", response_model=OrganizationOut,
+              dependencies=[Depends(require_roles("admin", "authority_inspector"))])
+def update_organization(org_id: str, payload: OrganizationUpdate, db: Session = Depends(get_db), user=Depends(get_current_user)):
     org = db.query(Organization).filter(Organization.id == org_id).first()
-    if not org:
-        raise HTTPException(status_code=404, detail="Not found")
-
+    if not org: raise HTTPException(404, "Not found")
     data = payload.model_dump(exclude_unset=True)
-    if not data:
-        return OrganizationOut.model_validate(org)
-
-    for k, v in data.items():
-        setattr(org, k, v)
-
+    if not data: return OrganizationOut.model_validate(org)
+    changes = diff_changes(org, data)
+    for k, v in data.items(): setattr(org, k, v)
+    audit(db, user, "update", "organization", org_id, changes=changes)
     try:
         db.commit()
     except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="Conflict (duplicate fields)")
+        db.rollback(); raise HTTPException(409, "Conflict (duplicate fields)")
     db.refresh(org)
     return OrganizationOut.model_validate(org)
 
 
-@router.delete(
-    "/organizations/{org_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(require_roles("admin", "authority_inspector"))],
-)
-def delete_organization(org_id: str, db: Session = Depends(get_db)):
-    """Удалить организацию.
-    
-    Нельзя удалить, если есть связанные сущности (пользователи, ВС, заявки).
-    """
+@router.delete("/organizations/{org_id}", status_code=204,
+               dependencies=[Depends(require_roles("admin", "authority_inspector"))])
+def delete_organization(org_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
     org = db.query(Organization).filter(Organization.id == org_id).first()
-    if not org:
-        raise HTTPException(status_code=404, detail="Not found")
-
-    # Проверка связанных сущностей
+    if not org: raise HTTPException(404, "Not found")
     if db.query(User).filter(User.organization_id == org_id).count() > 0:
-        raise HTTPException(status_code=409, detail="Organization has users")
+        raise HTTPException(409, "Organization has users")
     if db.query(Aircraft).filter(Aircraft.operator_id == org_id).count() > 0:
-        raise HTTPException(status_code=409, detail="Organization has aircraft")
+        raise HTTPException(409, "Organization has aircraft")
     if db.query(CertApplication).filter(CertApplication.applicant_org_id == org_id).count() > 0:
-        raise HTTPException(status_code=409, detail="Organization has applications")
-
-    db.delete(org)
-    db.commit()
-    return None
+        raise HTTPException(409, "Organization has applications")
+    audit(db, user, "delete", "organization", org_id, description=f"Deleted: {org.name}")
+    db.delete(org); db.commit()

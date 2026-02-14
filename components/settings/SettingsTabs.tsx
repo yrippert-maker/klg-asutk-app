@@ -19,31 +19,13 @@ const TABS: { id: SettingsTabId; label: string; icon: string }[] = [
 export default function SettingsTabs({ activeTab, onTabChange }: SettingsTabsProps) {
   return (
     <div
-      style={{
-        width: '200px',
-        borderRight: '1px solid #e0e0e0',
-        padding: '16px 0',
-        backgroundColor: '#f5f5f5',
-      }}
+     
     >
       {TABS.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          style={{
-            width: '100%',
-            padding: '12px 20px',
-            textAlign: 'left',
-            border: 'none',
-            backgroundColor: activeTab === tab.id ? 'white' : 'transparent',
-            borderLeft: activeTab === tab.id ? '3px solid #1e3a5f' : '3px solid transparent',
-            cursor: 'pointer',
-            fontSize: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'background-color 0.2s',
-          }}
+         
           onMouseEnter={(e) => {
             if (activeTab !== tab.id) {
               e.currentTarget.style.backgroundColor = '#e8e8e8';

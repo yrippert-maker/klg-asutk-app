@@ -36,16 +36,9 @@ export default function Error({
 
   return (
     <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        padding: '40px',
-        backgroundColor: '#f5f5f5',
-      }}
+     
     >
-      <div style={{ maxWidth: '600px', width: '100%' }}>
+      <div className="max-w-xl">
         <ErrorDisplay
           title={friendlyError.title}
           message={friendlyError.message}

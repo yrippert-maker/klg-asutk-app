@@ -1,161 +1,63 @@
 'use client';
-
-// Отключаем статическую генерацию для этой страницы
-
 import { useState } from 'react';
-import Sidebar from '@/components/Sidebar';
-import Logo from '@/components/Logo';
-import AircraftTable from '@/components/AircraftTable';
-import SearchModal from '@/components/SearchModal';
-import Pagination from '@/components/Pagination';
-import { useAircraftData } from '@/hooks/useSWRData';
-import { useUrlParams } from '@/hooks/useUrlParams';
+import { PageLayout, Pagination, StatusBadge, EmptyState } from '@/components/ui';
 import AircraftAddModal from '@/components/AircraftAddModal';
+import { useAircraftData } from '@/hooks/useSWRData';
+import { aircraftApi } from '@/lib/api/api-client';
+import { RequireRole } from '@/lib/auth-context';
 
 export default function AircraftPage() {
-  const { params } = useUrlParams();
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  
-  const page = params.page || 1;
-  const limit = params.limit || 50;
-  
-  // Используем SWR для кэширования данных
-  const { data, error, isLoading, mutate } = useAircraftData({
-    page,
-    limit,
-    paginate: true, // Используем server-side пагинацию
-  });
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const { data, isLoading, mutate } = useAircraftData({ q: search || undefined, page, limit: 25 });
+  const aircraft = data?.items || (Array.isArray(data) ? data : []);
+  const total = data?.total || aircraft.length;
+  const pages = data?.pages || 1;
 
-  const handleNavigate = (path: string) => {
-    window.location.href = path;
-  };
-
-  if (error) {
-    return (
-      <div style={{ display: 'flex', minHeight: '100vh' }}>
-        <Sidebar />
-        <div style={{ marginLeft: '280px', flex: 1, padding: '32px' }}>
-          <div style={{ color: 'red' }}>
-            Ошибка загрузки данных: {error.message}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const aircraft = data?.data || [];
-  const pagination = data?.pagination || {
-    page: 1,
-    limit: 50,
-    total: 0,
-    totalPages: 1,
-  };
+  const handleAdd = async (d: any) => { try { await aircraftApi.create(d); mutate(); setIsAddOpen(false); } catch (e: any) { alert(e.message); } };
+  const handleDelete = async (id: string) => { if (!confirm('Удалить ВС?')) return; try { await aircraftApi.delete(id); mutate(); } catch (e: any) { alert(e.message); } };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar />
-      <div id="main-content" role="main" style={{ marginLeft: '280px', flex: 1, padding: '32px' }}>
-        <div style={{ marginBottom: '32px' }}>
-          <Logo size="large" />
-          <p style={{ fontSize: '16px', color: '#666', marginTop: '16px', marginBottom: '24px' }}>
-            Реестр воздушных судов гражданской авиации РФ
-          </p>
-        </div>
-
-        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
-              Воздушные суда
-            </h2>
-            <p style={{ fontSize: '14px', color: '#666' }}>
-              {isLoading ? 'Загрузка...' : `Всего записей: ${pagination.total}`}
-            </p>
+    <PageLayout title="Воздушные суда" subtitle={isLoading ? 'Загрузка...' : `Всего: ${total}`}
+      actions={<>
+        <input type="text" placeholder="Поиск..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="input-field w-60" />
+        <RequireRole roles={['admin', 'authority_inspector', 'operator_manager']}>
+          <button onClick={() => setIsAddOpen(true)} className="btn-primary">+ Добавить ВС</button>
+        </RequireRole>
+      </>}>
+      {isLoading ? <div className="text-center py-10 text-gray-400">Загрузка...</div> : aircraft.length > 0 ? (
+        <>
+          <div className="card overflow-x-auto">
+            <table className="w-full">
+              <thead><tr className="bg-gray-50">
+                <th className="table-header">Регистрация</th><th className="table-header">Тип</th><th className="table-header">Модель</th>
+                <th className="table-header">Оператор</th><th className="table-header">Налёт (ч)</th><th className="table-header">Статус</th>
+                <th className="table-header">Действия</th>
+              </tr></thead>
+              <tbody>
+                {aircraft.map((a: any) => (
+                  <tr key={a.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="table-cell font-medium text-primary-500">{a.registration_number || a.registrationNumber}</td>
+                    <td className="table-cell">{a.aircraft_type || a.aircraftType}</td>
+                    <td className="table-cell text-gray-500">{a.model || '—'}</td>
+                    <td className="table-cell text-gray-500">{a.operator || a.operator_name || '—'}</td>
+                    <td className="table-cell text-right font-mono">{a.flight_hours || a.flightHours || '—'}</td>
+                    <td className="table-cell"><StatusBadge status={a.status || 'active'} /></td>
+                    <td className="table-cell">
+                      <RequireRole roles={['admin', 'authority_inspector', 'operator_manager']}>
+                        <button onClick={() => handleDelete(a.id)} className="btn-sm bg-red-100 text-red-600 hover:bg-red-200">Удалить</button>
+                      </RequireRole>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#1e3a5f',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 600,
-              }}
-            >
-              + Добавить ВС
-            </button>
-            <button
-              onClick={() => setIsSearchModalOpen(true)}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#2196f3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px',
-              }}
-            >
-              Поиск
-            </button>
-            <button
-              onClick={() => mutate()}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#4caf50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px',
-              }}
-            >
-              Обновить
-            </button>
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '16px', color: '#666' }}>Загрузка данных...</div>
-          </div>
-        ) : (
-          <>
-            <AircraftTable aircraft={aircraft} />
-            {pagination.totalPages > 1 && (
-              <div style={{ marginTop: '24px' }}>
-                <Pagination
-                  total={pagination.total}
-                  limit={pagination.limit}
-                  currentPage={pagination.page}
-                />
-              </div>
-            )}
-          </>
-        )}
-
-        <SearchModal
-          isOpen={isSearchModalOpen}
-          onClose={() => setIsSearchModalOpen(false)}
-          aircraft={aircraft}
-          searchType="aircraft"
-          onNavigate={handleNavigate}
-        />
-
-        <AircraftAddModal
-          isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          onSave={async (data, files) => {
-            console.log('New aircraft:', data, 'Files:', files);
-            alert('ВС ' + data.registrationNumber + ' добавлено (демо). Файлов: ' + files.length);
-            mutate();
-          }}
-        />
-      </div>
-    </div>
+          <Pagination page={page} pages={pages} onPageChange={setPage} />
+        </>
+      ) : <EmptyState message={`ВС не найдены.${search ? ' Измените поиск.' : ''}`} />}
+      <AircraftAddModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onAdd={handleAdd} />
+    </PageLayout>
   );
 }

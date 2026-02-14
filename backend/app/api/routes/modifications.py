@@ -1,162 +1,79 @@
-"""
-API routes для управления модификациями воздушных судов.
-
-Соответствует требованиям ИКАО Annex 8: отслеживание обязательных модификаций
-(AD - Airworthiness Directives, SB - Service Bulletins, STC - Supplemental Type Certificates).
-"""
-
+"""Modifications API — refactored: pagination, audit, DRY."""
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_roles
+from app.api.helpers import audit, diff_changes, check_aircraft_access, filter_by_org, paginate_query
 from app.db.session import get_db
 from app.models import AircraftModification, Aircraft
-from app.schemas.modifications import (
-    AircraftModificationCreate,
-    AircraftModificationOut,
-    AircraftModificationUpdate,
-)
+from app.schemas.modifications import AircraftModificationCreate, AircraftModificationOut, AircraftModificationUpdate
 
 router = APIRouter(tags=["modifications"])
 
 
-@router.get("/aircraft/{aircraft_id}/modifications", response_model=list[AircraftModificationOut])
+@router.get("/aircraft/{aircraft_id}/modifications")
 def list_modifications(
-    aircraft_id: str,
-    modification_type: str | None = Query(None, description="Filter by modification type (AD, SB, STC)"),
-    compliance_status: str | None = Query(None, description="Filter by compliance status"),
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    aircraft_id: str, modification_type: str | None = Query(None),
+    compliance_status: str | None = Query(None),
+    page: int = Query(1, ge=1), per_page: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db), user=Depends(get_current_user),
 ):
-    """Получить список модификаций для воздушного судна."""
-    # Проверка доступа к ВС
-    aircraft = db.query(Aircraft).filter(Aircraft.id == aircraft_id).first()
-    if not aircraft:
-        raise HTTPException(status_code=404, detail="Aircraft not found")
-    
-    if user.role.startswith("operator") and user.organization_id and aircraft.operator_id != user.organization_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    
-    query = db.query(AircraftModification).filter(AircraftModification.aircraft_id == aircraft_id)
-    
-    if modification_type:
-        query = query.filter(AircraftModification.modification_type == modification_type)
-    
-    if compliance_status:
-        query = query.filter(AircraftModification.compliance_status == compliance_status)
-    
-    return query.order_by(AircraftModification.compliance_date.desc()).all()
+    check_aircraft_access(db, user, aircraft_id)
+    q = db.query(AircraftModification).filter(AircraftModification.aircraft_id == aircraft_id)
+    if modification_type: q = q.filter(AircraftModification.modification_type == modification_type)
+    if compliance_status: q = q.filter(AircraftModification.compliance_status == compliance_status)
+    q = q.order_by(AircraftModification.compliance_date.desc())
+    return paginate_query(q, page, per_page)
 
 
-@router.post(
-    "/aircraft/{aircraft_id}/modifications",
-    response_model=AircraftModificationOut,
-    dependencies=[Depends(require_roles("admin", "operator_user", "operator_manager", "authority_inspector"))],
-)
-def create_modification(
-    aircraft_id: str,
-    payload: AircraftModificationCreate,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    """Создать новую модификацию для воздушного судна."""
-    # Проверка существования ВС
-    aircraft = db.query(Aircraft).filter(Aircraft.id == aircraft_id).first()
-    if not aircraft:
-        raise HTTPException(status_code=404, detail="Aircraft not found")
-    
-    # Проверка доступа
-    if user.role.startswith("operator") and user.organization_id and aircraft.operator_id != user.organization_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    
-    # Установка aircraft_id из URL
-    mod_data = payload.model_dump()
-    mod_data["aircraft_id"] = aircraft_id
-    
-    # Автоматическое заполнение организации и пользователя (если не указаны)
-    if not mod_data.get("performed_by_org_id") and user.organization_id:
-        mod_data["performed_by_org_id"] = user.organization_id
-    if not mod_data.get("performed_by_user_id"):
-        mod_data["performed_by_user_id"] = user.id
-    
-    modification = AircraftModification(**mod_data)
-    db.add(modification)
-    db.commit()
-    db.refresh(modification)
-    return modification
+@router.post("/aircraft/{aircraft_id}/modifications", response_model=AircraftModificationOut, status_code=201,
+             dependencies=[Depends(require_roles("admin", "operator_user", "operator_manager", "authority_inspector"))])
+def create_modification(aircraft_id: str, payload: AircraftModificationCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    check_aircraft_access(db, user, aircraft_id)
+    data = payload.model_dump()
+    data["aircraft_id"] = aircraft_id
+    if not data.get("performed_by_org_id"): data["performed_by_org_id"] = user.organization_id
+    if not data.get("performed_by_user_id"): data["performed_by_user_id"] = user.id
+    mod = AircraftModification(**data)
+    db.add(mod)
+    audit(db, user, "create", "modification", description=f"Mod {payload.modification_number} for {aircraft_id}")
+    db.commit(); db.refresh(mod)
+    return mod
 
 
 @router.get("/modifications/{mod_id}", response_model=AircraftModificationOut)
-def get_modification(
-    mod_id: str,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    """Получить модификацию по ID."""
-    modification = db.query(AircraftModification).filter(AircraftModification.id == mod_id).first()
-    if not modification:
-        raise HTTPException(status_code=404, detail="Not found")
-    
-    # Проверка доступа к связанному ВС
-    aircraft = db.query(Aircraft).filter(Aircraft.id == modification.aircraft_id).first()
-    if user.role.startswith("operator") and user.organization_id and aircraft.operator_id != user.organization_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    
-    return modification
+def get_modification(mod_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    mod = db.query(AircraftModification).filter(AircraftModification.id == mod_id).first()
+    if not mod: raise HTTPException(404, "Not found")
+    check_aircraft_access(db, user, mod.aircraft_id)
+    return mod
 
 
-@router.patch(
-    "/modifications/{mod_id}",
-    response_model=AircraftModificationOut,
-    dependencies=[Depends(require_roles("admin", "operator_user", "operator_manager", "authority_inspector"))],
-)
-def update_modification(
-    mod_id: str,
-    payload: AircraftModificationUpdate,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    """Обновить модификацию."""
-    modification = db.query(AircraftModification).filter(AircraftModification.id == mod_id).first()
-    if not modification:
-        raise HTTPException(status_code=404, detail="Not found")
-    
-    # Проверка доступа к связанному ВС
-    aircraft = db.query(Aircraft).filter(Aircraft.id == modification.aircraft_id).first()
-    if user.role.startswith("operator") and user.organization_id and aircraft.operator_id != user.organization_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    
+@router.patch("/modifications/{mod_id}", response_model=AircraftModificationOut,
+              dependencies=[Depends(require_roles("admin", "operator_user", "operator_manager", "authority_inspector"))])
+def update_modification(mod_id: str, payload: AircraftModificationUpdate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    mod = db.query(AircraftModification).filter(AircraftModification.id == mod_id).first()
+    if not mod: raise HTTPException(404, "Not found")
+    check_aircraft_access(db, user, mod.aircraft_id)
     data = payload.model_dump(exclude_unset=True)
-    for k, v in data.items():
-        setattr(modification, k, v)
-    
-    db.commit()
-    db.refresh(modification)
-    return modification
+    changes = diff_changes(mod, data)
+    for k, v in data.items(): setattr(mod, k, v)
+    audit(db, user, "update", "modification", mod_id, changes=changes)
+    db.commit(); db.refresh(mod)
+    return mod
 
 
-@router.get("/modifications", response_model=list[AircraftModificationOut])
+@router.get("/modifications")
 def list_all_modifications(
-    compliance_required: bool | None = Query(None, description="Filter by compliance required"),
-    compliance_status: str | None = Query(None, description="Filter by compliance status"),
-    modification_type: str | None = Query(None, description="Filter by modification type"),
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    compliance_required: bool | None = Query(None), compliance_status: str | None = Query(None),
+    modification_type: str | None = Query(None),
+    page: int = Query(1, ge=1), per_page: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db), user=Depends(get_current_user),
 ):
-    """Получить список всех модификаций (с фильтрацией)."""
-    query = db.query(AircraftModification)
-    
-    # Operator-bound visibility
-    if user.role.startswith("operator") and user.organization_id:
-        query = query.join(Aircraft).filter(Aircraft.operator_id == user.organization_id)
-    
-    if compliance_required is not None:
-        query = query.filter(AircraftModification.compliance_required == compliance_required)
-    
-    if compliance_status:
-        query = query.filter(AircraftModification.compliance_status == compliance_status)
-    
-    if modification_type:
-        query = query.filter(AircraftModification.modification_type == modification_type)
-    
-    return query.order_by(AircraftModification.compliance_date.desc()).all()
+    q = db.query(AircraftModification)
+    q = filter_by_org(q.join(Aircraft), Aircraft, user)
+    if compliance_required is not None: q = q.filter(AircraftModification.compliance_required == compliance_required)
+    if compliance_status: q = q.filter(AircraftModification.compliance_status == compliance_status)
+    if modification_type: q = q.filter(AircraftModification.modification_type == modification_type)
+    q = q.order_by(AircraftModification.compliance_date.desc())
+    return paginate_query(q, page, per_page)

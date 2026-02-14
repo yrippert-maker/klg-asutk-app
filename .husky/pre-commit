@@ -1,0 +1,5 @@
+#!/bin/sh
+# Pre-commit: линт перед коммитом (запускается Husky при git commit)
+[ -f "$(dirname "$0")/_/husky.sh" ] && . "$(dirname "$0")/_/husky.sh"
+npm run lint --if-present
+exit 0

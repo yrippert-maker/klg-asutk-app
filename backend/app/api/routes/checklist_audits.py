@@ -1,217 +1,108 @@
-"""API для проведения аудитов (проверок) по чек-листам."""
-
+"""Checklist Audits API — refactored: pagination, audit trail, tenant filtering."""
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_roles
+from app.api.helpers import audit as audit_log, filter_by_org, paginate_query, check_aircraft_access
 from app.db.session import get_db
 from app.models import Audit, AuditResponse, Finding, ChecklistTemplate, ChecklistItem, Aircraft
-from app.schemas.audit import (
-    AuditCreate, AuditOut, AuditResponseCreate, AuditResponseOut, FindingOut
-)
+from app.schemas.audit import AuditCreate, AuditOut, AuditResponseCreate, AuditResponseOut, FindingOut
+from app.services.ws_manager import ws_manager, make_notification
 
 router = APIRouter(tags=["checklist-audits"])
 
 
-@router.get("/audits", response_model=list[AuditOut])
+@router.get("/audits")
 def list_audits(
-    aircraft_id: str | None = None,
-    status: str | None = None,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    aircraft_id: str | None = None, status: str | None = None,
+    page: int = Query(1, ge=1), per_page: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db), user=Depends(get_current_user),
 ):
-    """Список аудитов."""
     q = db.query(Audit)
-    
-    if aircraft_id:
-        q = q.filter(Audit.aircraft_id == aircraft_id)
-    if status:
-        q = q.filter(Audit.status == status)
-    
-    # Фильтр по организации для операторов
-    if user.role.startswith("operator") and user.organization_id:
-        q = q.join(Aircraft).filter(Aircraft.operator_id == user.organization_id)
-    
-    audits = q.order_by(Audit.created_at.desc()).limit(200).all()
-    return [AuditOut.model_validate(a) for a in audits]
+    if aircraft_id: q = q.filter(Audit.aircraft_id == aircraft_id)
+    if status: q = q.filter(Audit.status == status)
+    q = filter_by_org(q.join(Aircraft), Aircraft, user)
+    q = q.order_by(Audit.created_at.desc())
+    result = paginate_query(q, page, per_page)
+    result["items"] = [AuditOut.model_validate(a) for a in result["items"]]
+    return result
 
 
-@router.post(
-    "/audits",
-    response_model=AuditOut,
-    dependencies=[Depends(require_roles("admin", "authority_inspector", "operator_manager"))],
-)
-def create_audit(
-    payload: AuditCreate,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    """Создаёт новый аудит."""
-    template = db.query(ChecklistTemplate).filter(ChecklistTemplate.id == payload.template_id).first()
-    if not template:
-        raise HTTPException(status_code=404, detail="Шаблон не найден")
-    
-    aircraft = db.query(Aircraft).filter(Aircraft.id == payload.aircraft_id).first()
-    if not aircraft:
-        raise HTTPException(status_code=404, detail="ВС не найдено")
-    
-    audit = Audit(
-        template_id=payload.template_id,
-        aircraft_id=payload.aircraft_id,
-        planned_at=payload.planned_at,
-        inspector_user_id=user.id,
-        status="draft"
-    )
-    db.add(audit)
-    db.commit()
-    db.refresh(audit)
-    return AuditOut.model_validate(audit)
+@router.post("/audits", response_model=AuditOut, status_code=201,
+             dependencies=[Depends(require_roles("admin", "authority_inspector", "operator_manager"))])
+def create_audit(payload: AuditCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if not db.query(ChecklistTemplate).filter(ChecklistTemplate.id == payload.template_id).first():
+        raise HTTPException(404, "Template not found")
+    check_aircraft_access(db, user, payload.aircraft_id)
+    a = Audit(template_id=payload.template_id, aircraft_id=payload.aircraft_id,
+              planned_at=payload.planned_at, inspector_user_id=user.id, status="draft")
+    db.add(a)
+    audit_log(db, user, "create", "audit", description=f"Audit for aircraft {payload.aircraft_id}")
+    db.commit(); db.refresh(a)
+    return AuditOut.model_validate(a)
 
 
 @router.get("/audits/{audit_id}", response_model=AuditOut)
-def get_audit(
-    audit_id: str,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    """Получает аудит с ответами и находками."""
-    audit = db.query(Audit).filter(Audit.id == audit_id).first()
-    if not audit:
-        raise HTTPException(status_code=404, detail="Аудит не найден")
-    
-    return AuditOut.model_validate(audit)
+def get_audit(audit_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    a = db.query(Audit).filter(Audit.id == audit_id).first()
+    if not a: raise HTTPException(404, "Not found")
+    return AuditOut.model_validate(a)
 
 
-@router.post(
-    "/audits/{audit_id}/responses",
-    response_model=AuditResponseOut,
-    dependencies=[Depends(require_roles("admin", "authority_inspector", "operator_manager"))],
-)
-def submit_response(
-    audit_id: str,
-    payload: AuditResponseCreate,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    """Отправляет ответ по пункту чек-листа. Автоматически создаёт Finding при non_compliant."""
-    audit = db.query(Audit).filter(Audit.id == audit_id).first()
-    if not audit:
-        raise HTTPException(status_code=404, detail="Аудит не найден")
-    
-    if audit.status == "completed":
-        raise HTTPException(status_code=400, detail="Аудит уже завершён")
-    
+@router.post("/audits/{audit_id}/responses", response_model=AuditResponseOut,
+             dependencies=[Depends(require_roles("admin", "authority_inspector", "operator_manager"))])
+def submit_response(audit_id: str, payload: AuditResponseCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    a = db.query(Audit).filter(Audit.id == audit_id).first()
+    if not a: raise HTTPException(404, "Audit not found")
+    if a.status == "completed": raise HTTPException(400, "Audit completed")
     item = db.query(ChecklistItem).filter(ChecklistItem.id == payload.item_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Пункт чек-листа не найден")
-    
-    # Проверяем, нет ли уже ответа
-    existing = db.query(AuditResponse).filter(
-        AuditResponse.audit_id == audit_id,
-        AuditResponse.item_id == payload.item_id
-    ).first()
-    
+    if not item: raise HTTPException(404, "Checklist item not found")
+
+    existing = db.query(AuditResponse).filter(AuditResponse.audit_id == audit_id, AuditResponse.item_id == payload.item_id).first()
     if existing:
-        existing.answer = payload.answer
-        existing.comment = payload.comment
+        existing.answer = payload.answer; existing.comment = payload.comment
         existing.evidence_attachment_ids = payload.evidence_attachment_ids
         response = existing
     else:
-        response = AuditResponse(
-            audit_id=audit_id,
-            item_id=payload.item_id,
-            answer=payload.answer,
-            comment=payload.comment,
-            evidence_attachment_ids=payload.evidence_attachment_ids
-        )
+        response = AuditResponse(audit_id=audit_id, item_id=payload.item_id, answer=payload.answer,
+                                 comment=payload.comment, evidence_attachment_ids=payload.evidence_attachment_ids)
         db.add(response)
-    
-    # Автоматически создаём Finding при non_compliant
+
+    # Auto-finding on non_compliant
     if payload.answer == "non_compliant":
-        existing_finding = db.query(Finding).filter(
-            Finding.audit_id == audit_id,
-            Finding.item_id == payload.item_id
-        ).first()
-        
-        if not existing_finding:
-            # Определяем severity и risk_score на основе типа пункта
-            severity = "high"
-            risk_score = 75
-            if "критич" in item.text.lower() or "безопасн" in item.text.lower():
-                severity = "critical"
-                risk_score = 100
-            elif "рекоменд" in item.text.lower():
-                severity = "medium"
-                risk_score = 50
-            
-            finding = Finding(
-                audit_id=audit_id,
-                response_id=response.id if hasattr(response, 'id') else None,
-                item_id=payload.item_id,
-                severity=severity,
-                risk_score=risk_score,
-                status="open",
-                description=f"Несоответствие по пункту {item.code}: {item.text}"
-            )
-            db.add(finding)
-    
-    # Обновляем статус аудита
-    if audit.status == "draft":
-        audit.status = "in_progress"
-    
-    db.commit()
-    db.refresh(response)
+        if not db.query(Finding).filter(Finding.audit_id == audit_id, Finding.item_id == payload.item_id).first():
+            sev = "critical" if any(w in item.text.lower() for w in ["критич", "безопасн"]) else \
+                  "medium" if "рекоменд" in item.text.lower() else "high"
+            db.add(Finding(audit_id=audit_id, response_id=getattr(response, 'id', None),
+                           item_id=payload.item_id, severity=sev, risk_score={"critical":100,"high":75,"medium":50}.get(sev, 50),
+                           status="open", description=f"Несоответствие: {item.code} — {item.text}"))
+
+    if a.status == "draft": a.status = "in_progress"
+    audit_log(db, user, "update", "audit", audit_id, description=f"Response: {item.code} = {payload.answer}")
+    db.commit(); db.refresh(response)
     return AuditResponseOut.model_validate(response)
 
 
 @router.get("/audits/{audit_id}/responses", response_model=list[AuditResponseOut])
-def list_responses(
-    audit_id: str,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    """Список ответов по аудиту."""
-    audit = db.query(Audit).filter(Audit.id == audit_id).first()
-    if not audit:
-        raise HTTPException(status_code=404, detail="Аудит не найден")
-    
-    responses = db.query(AuditResponse).filter(AuditResponse.audit_id == audit_id).all()
-    return [AuditResponseOut.model_validate(r) for r in responses]
+def list_responses(audit_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if not db.query(Audit).filter(Audit.id == audit_id).first(): raise HTTPException(404, "Not found")
+    return [AuditResponseOut.model_validate(r) for r in db.query(AuditResponse).filter(AuditResponse.audit_id == audit_id).all()]
 
 
 @router.get("/audits/{audit_id}/findings", response_model=list[FindingOut])
-def list_findings(
-    audit_id: str,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    """Список находок (несоответствий) по аудиту."""
-    audit = db.query(Audit).filter(Audit.id == audit_id).first()
-    if not audit:
-        raise HTTPException(status_code=404, detail="Аудит не найден")
-    
-    findings = db.query(Finding).filter(Finding.audit_id == audit_id).order_by(Finding.severity.desc()).all()
-    return [FindingOut.model_validate(f) for f in findings]
+def list_findings(audit_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if not db.query(Audit).filter(Audit.id == audit_id).first(): raise HTTPException(404, "Not found")
+    return [FindingOut.model_validate(f) for f in db.query(Finding).filter(Finding.audit_id == audit_id).order_by(Finding.severity.desc()).all()]
 
 
-@router.patch(
-    "/audits/{audit_id}/complete",
-    response_model=AuditOut,
-    dependencies=[Depends(require_roles("admin", "authority_inspector"))],
-)
-def complete_audit(
-    audit_id: str,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    """Завершает аудит."""
-    audit = db.query(Audit).filter(Audit.id == audit_id).first()
-    if not audit:
-        raise HTTPException(status_code=404, detail="Аудит не найден")
-    
-    audit.status = "completed"
-    audit.completed_at = datetime.now(timezone.utc)
-    db.commit()
-    db.refresh(audit)
-    return AuditOut.model_validate(audit)
+@router.patch("/audits/{audit_id}/complete", response_model=AuditOut,
+              dependencies=[Depends(require_roles("admin", "authority_inspector"))])
+async def complete_audit(audit_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    a = db.query(Audit).filter(Audit.id == audit_id).first()
+    if not a: raise HTTPException(404, "Not found")
+    a.status = "completed"; a.completed_at = datetime.now(timezone.utc)
+    audit_log(db, user, "update", "audit", audit_id, description="Completed")
+    db.commit(); db.refresh(a)
+    await ws_manager.broadcast(make_notification("audit_completed", "audit", audit_id))
+    return AuditOut.model_validate(a)

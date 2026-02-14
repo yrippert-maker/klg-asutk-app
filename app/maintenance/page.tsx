@@ -1,62 +1,164 @@
-"use client";
-import { useState } from "react";
-import Sidebar from "@/components/Sidebar";
-import Logo from "@/components/Logo";
-
-const MOCK_TASKS = [
-  { id: "mt-001", taskNumber: "WO-2026-0041", aircraft: "RA-73701", aircraftType: "Boeing 737-800", type: "C-Check", status: "overdue", assignedTo: "S7 Technics", startDate: "2026-01-20", dueDate: "2026-01-27", description: "Плановый C-Check по программе ТО" },
-  { id: "mt-002", taskNumber: "WO-2026-0042", aircraft: "RA-89002", aircraftType: "SSJ-100", type: "A-Check", status: "in_progress", assignedTo: "REFLY MRO", startDate: "2026-02-05", dueDate: "2026-02-12", description: "A-Check каждые 750 лётных часов" },
-  { id: "mt-003", taskNumber: "WO-2026-0043", aircraft: "RA-02801", aircraftType: "Mi-8MTV-1", type: "Периодическое ТО", status: "in_progress", assignedTo: "UTair Engineering", startDate: "2026-02-01", dueDate: "2026-02-15", description: "100-часовая форма + замена масла" },
-  { id: "mt-004", taskNumber: "WO-2026-0044", aircraft: "RA-73702", aircraftType: "Boeing 737-800", type: "Линейное ТО", status: "planned", assignedTo: "REFLY MRO", startDate: "2026-02-20", dueDate: "2026-02-21", description: "Transit check после дальнемагистрального рейса" },
-  { id: "mt-005", taskNumber: "WO-2026-0045", aircraft: "RA-89001", aircraftType: "SSJ-100", type: "AD выполнение", status: "planned", assignedTo: "S7 Technics", startDate: "2026-03-01", dueDate: "2026-03-05", description: "Выполнение EASA AD 2025-0198" },
-  { id: "mt-006", taskNumber: "WO-2026-0046", aircraft: "RA-96017", aircraftType: "Il-96-300", type: "D-Check", status: "completed", assignedTo: "VASO MRO", startDate: "2025-09-01", dueDate: "2025-12-15", description: "Капитальный ремонт D-Check" },
-  { id: "mt-007", taskNumber: "WO-2026-0047", aircraft: "RA-76511", aircraftType: "Il-76TD-90VD", type: "B-Check", status: "completed", assignedTo: "Volga-Dnepr Technics", startDate: "2025-11-10", dueDate: "2025-12-01", description: "B-Check по программе ТО изготовителя" },
-];
-
-const sColors: Record<string, string> = { overdue: "#d32f2f", in_progress: "#2196f3", planned: "#ff9800", completed: "#4caf50" };
-const sLabels: Record<string, string> = { overdue: "Просрочено", in_progress: "В работе", planned: "Запланировано", completed: "Завершено" };
+/**
+ * Техническое обслуживание — наряды на ТО (Work Orders)
+ * ФАП-145 п.A.50-65; EASA Part-145; ICAO Annex 6 Part I 8.7
+ */
+'use client';
+import { useState, useEffect, useCallback } from 'react';
+import { PageLayout, DataTable, StatusBadge, Modal, EmptyState } from '@/components/ui';
 
 export default function MaintenancePage() {
-  const [filter, setFilter] = useState("all");
-  const filtered = filter === "all" ? MOCK_TASKS : MOCK_TASKS.filter(t => t.status === filter);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
+  const [filter, setFilter] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [selected, setSelected] = useState<any>(null);
+
+  const api = useCallback(async (ep: string, opts?: RequestInit) => {
+        const r = await fetch(`/api/v1/work-orders${ep}`, opts);
+    return r.json();
+  }, []);
+
+  const reload = useCallback(() => {
+        api(`/${filter ? `?status=${filter}` : ""}`).then(d => { setOrders(d.items || []); });
+    api('/stats/summary').then(setStats);
+  }, [api, filter]);
+
+  useEffect(() => {
+    setLoading(true); reload(); }, [reload]);
+
+  const handleCreate = async (data: any) => {
+    const r = await api('/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (r.id) { reload(); setShowAdd(false); }
+  };
+
+  const priorityColors: Record<string, string> = { aog: 'bg-red-600', urgent: 'bg-orange-500', normal: 'bg-blue-500', deferred: 'bg-gray-400' };
+  const statusColors: Record<string, string> = { draft: 'bg-gray-400', in_progress: 'bg-blue-500', closed: 'bg-green-500', cancelled: 'bg-red-400' };
+  const statusLabels: Record<string, string> = { draft: 'Черновик', in_progress: 'В работе', closed: 'Закрыт', cancelled: 'Отменён' };
+  const typeLabels: Record<string, string> = { scheduled: 'Плановое', unscheduled: 'Внеплановое', ad_compliance: 'Выполн. ДЛГ', sb_compliance: 'Выполн. SB', defect_rectification: 'Устранение дефекта', modification: 'Модификация' };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      <Sidebar />
-      <div style={{ marginLeft: "280px", flex: 1, padding: "32px" }}>
-        <Logo size="large" />
-        <p style={{ color: "#666", margin: "16px 0 24px" }}>Управление техническим обслуживанием воздушных судов</p>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-          <div>
-            <h2 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "8px" }}>Техническое обслуживание</h2>
-            <p style={{ fontSize: "14px", color: "#666" }}>Рабочие задания (Work Orders) — EASA Part-145 / ФАП-145</p>
-          </div>
-          <button style={{ padding: "10px 20px", background: "#1e3a5f", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 600 }}>+ Новое задание</button>
+    <>
+    {loading && <div className="fixed inset-0 bg-white/50 z-50 flex items-center justify-center"><div className="text-gray-500">⏳ Загрузка...</div></div>}
+      <PageLayout title="🔧 Техническое обслуживание" subtitle="Наряды на ТО — ФАП-145; EASA Part-145"
+      actions={<button onClick={() => setShowAdd(true)} className="btn-primary text-sm px-4 py-2 rounded">+ Создать наряд</button>}>
+
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
+          <div className="card p-3 text-center"><div className="text-2xl font-bold">{stats.total}</div><div className="text-[10px] text-gray-500">Всего</div></div>
+          <div className="card p-3 text-center bg-gray-50"><div className="text-2xl font-bold text-gray-600">{stats.draft}</div><div className="text-[10px] text-gray-500">Черновик</div></div>
+          <div className="card p-3 text-center bg-blue-50"><div className="text-2xl font-bold text-blue-600">{stats.in_progress}</div><div className="text-[10px] text-blue-600">В работе</div></div>
+          <div className="card p-3 text-center bg-green-50"><div className="text-2xl font-bold text-green-600">{stats.closed}</div><div className="text-[10px] text-green-600">Закрыто</div></div>
+          <div className="card p-3 text-center bg-red-50"><div className="text-2xl font-bold text-red-600">{stats.aog}</div><div className="text-[10px] text-red-600">AOG</div></div>
+          <div className="card p-3 text-center bg-purple-50"><div className="text-2xl font-bold text-purple-600">{stats.total_manhours}</div><div className="text-[10px] text-purple-600">Человеко-часов</div></div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "24px" }}>
-          {[["overdue","Просрочено","#ffebee"],["in_progress","В работе","#e3f2fd"],["planned","Запланировано","#fff3e0"],["completed","Завершено","#e8f5e9"]].map(([s,l,bg]) => (
-            <div key={s} onClick={() => setFilter(filter===s?"all":s)} style={{ background: bg, padding: "16px", borderRadius: "8px", textAlign: "center", cursor: "pointer", border: filter===s ? "2px solid #1e3a5f" : "2px solid transparent" }}>
-              <div style={{ fontSize: "28px", fontWeight: "bold", color: sColors[s] }}>{MOCK_TASKS.filter(t=>t.status===s).length}</div>
-              <div style={{ fontSize: "13px", color: "#666" }}>{l}</div>
+      )}
+
+      {/* Filters */}
+      <div className="flex gap-2 mb-4">
+        {['', 'draft', 'in_progress', 'closed', 'cancelled'].map(s => (
+          <button key={s} onClick={() => setFilter(s)}
+            className={`px-3 py-1.5 rounded text-xs ${filter === s ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+            {statusLabels[s] || 'Все'}
+          </button>
+        ))}
+      </div>
+
+      {/* Table */}
+      {orders.length > 0 ? (
+        <DataTable columns={[
+          { key: 'wo_number', label: '№ наряда' },
+          { key: 'aircraft_reg', label: 'Борт' },
+          { key: 'wo_type', label: 'Тип', render: (v: string) => <span className="text-xs">{typeLabels[v] || v}</span> },
+          { key: 'title', label: 'Наименование' },
+          { key: 'priority', label: 'Приоритет', render: (v: string) => <StatusBadge status={v} colorMap={priorityColors} /> },
+          { key: 'estimated_manhours', label: 'План. ч/ч' },
+          { key: 'status', label: 'Статус', render: (v: string) => <StatusBadge status={v} colorMap={statusColors} labelMap={statusLabels} /> },
+        ]} data={orders} onRowClick={setSelected} />
+      ) : <EmptyState message="Нет нарядов на ТО" />}
+
+      {/* Detail modal */}
+      <Modal isOpen={!!selected} onClose={() => setSelected(null)} title={selected ? `WO ${selected.wo_number}` : ''} size="lg">
+        {selected && (
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <div><span className="text-gray-500">Борт:</span> {selected.aircraft_reg}</div>
+              <div><span className="text-gray-500">Тип:</span> {typeLabels[selected.wo_type] || selected.wo_type}</div>
+              <div><span className="text-gray-500">Приоритет:</span> <StatusBadge status={selected.priority} colorMap={priorityColors} /></div>
+              <div><span className="text-gray-500">Статус:</span> <StatusBadge status={selected.status} colorMap={statusColors} labelMap={statusLabels} /></div>
+              <div><span className="text-gray-500">План. ч/ч:</span> {selected.estimated_manhours}</div>
+              <div><span className="text-gray-500">Факт. ч/ч:</span> {selected.actual_manhours || '—'}</div>
             </div>
-          ))}
-        </div>
-        <table style={{ width: "100%", borderCollapse: "collapse", background: "white" }}>
-          <thead><tr style={{ background: "#1e3a5f", color: "white" }}>
-            {["WO №","ВС","ТИП ВС","ФОРМА ТО","ИСПОЛНИТЕЛЬ","СТАТУС","СРОК"].map(h => <th key={h} style={{ padding: "12px", textAlign: "left", fontSize: "12px" }}>{h}</th>)}
-          </tr></thead>
-          <tbody>{filtered.map(t => (
-            <tr key={t.id} style={{ borderBottom: "1px solid #e0e0e0", background: t.status==="overdue" ? "#fff5f5" : "transparent" }}>
-              <td style={{ padding: "12px", fontWeight: 600 }}>{t.taskNumber}</td>
-              <td style={{ padding: "12px" }}>{t.aircraft}</td>
-              <td style={{ padding: "12px", fontSize: "13px" }}>{t.aircraftType}</td>
-              <td style={{ padding: "12px" }}>{t.type}</td>
-              <td style={{ padding: "12px", fontSize: "13px" }}>{t.assignedTo}</td>
-              <td style={{ padding: "12px" }}><span style={{ padding: "3px 8px", borderRadius: "4px", fontSize: "11px", color: "white", background: sColors[t.status] }}>{sLabels[t.status]}</span></td>
-              <td style={{ padding: "12px", fontSize: "13px" }}>{t.dueDate}</td>
-            </tr>
-          ))}</tbody>
-        </table>
+            {selected.description && <div className="text-gray-600">{selected.description}</div>}
+            {selected.crs_signed_by && (
+              <div className="bg-green-50 border border-green-200 rounded p-2 text-xs text-green-700">
+                ✅ CRS подписан: {selected.crs_signed_by} ({selected.crs_date ? new Date(selected.crs_date).toLocaleDateString('ru-RU') : ''})
+              </div>
+            )}
+            {selected.findings && <div><span className="text-gray-500 font-medium">Замечания:</span> {selected.findings}</div>}
+            <div className="flex gap-2 pt-2">
+              {selected.status === 'draft' && (
+                <button onClick={async () => { await api(`/${selected.id}/open`, { method: 'PUT' }); reload(); setSelected(null); }}
+                  className="btn-primary px-4 py-2 rounded text-xs">▶ В работу</button>
+              )}
+              {selected.status === 'in_progress' && (
+                <button onClick={async () => {
+                  await api(`/${selected.id}/close`, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ actual_manhours: selected.estimated_manhours, findings: '', parts_used: [], crs_signed_by: 'Текущий пользователь' }) });
+                  reload(); setSelected(null);
+                }} className="bg-green-600 text-white px-4 py-2 rounded text-xs">✅ Закрыть + CRS</button>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Create modal */}
+      <Modal isOpen={showAdd} onClose={() => setShowAdd(false)} title="Создать наряд на ТО">
+        <WOForm onSubmit={handleCreate} onCancel={() => setShowAdd(false)} />
+      </Modal>
+    </PageLayout>
+    </>
+  );
+}
+
+function WOForm({ onSubmit, onCancel }: { onSubmit: (d: any) => void; onCancel: () => void }) {
+  const [f, setF] = useState({
+    wo_number: `WO-${Date.now().toString(36).toUpperCase()}`,
+    aircraft_reg: '', wo_type: 'scheduled', title: '', description: '',
+    priority: 'normal', estimated_manhours: 0,
+  });
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className="text-xs font-medium text-gray-600">№ наряда</label>
+          <input className="input-field w-full mt-1" value={f.wo_number} onChange={e => setF(p => ({ ...p, wo_number: e.target.value }))} /></div>
+        <div><label className="text-xs font-medium text-gray-600">Борт</label>
+          <input className="input-field w-full mt-1" placeholder="RA-89001" value={f.aircraft_reg} onChange={e => setF(p => ({ ...p, aircraft_reg: e.target.value }))} /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className="text-xs font-medium text-gray-600">Тип работ</label>
+          <select className="input-field w-full mt-1" value={f.wo_type} onChange={e => setF(p => ({ ...p, wo_type: e.target.value }))}>
+            <option value="scheduled">Плановое ТО</option><option value="unscheduled">Внеплановое</option>
+            <option value="ad_compliance">Выполнение ДЛГ</option><option value="sb_compliance">Выполнение SB</option>
+            <option value="defect_rectification">Устранение дефекта</option><option value="modification">Модификация</option>
+          </select></div>
+        <div><label className="text-xs font-medium text-gray-600">Приоритет</label>
+          <select className="input-field w-full mt-1" value={f.priority} onChange={e => setF(p => ({ ...p, priority: e.target.value }))}>
+            <option value="aog">AOG (ВС на земле)</option><option value="urgent">Срочный</option>
+            <option value="normal">Обычный</option><option value="deferred">Отложенный</option>
+          </select></div>
+      </div>
+      <div><label className="text-xs font-medium text-gray-600">Наименование работ</label>
+        <input className="input-field w-full mt-1" value={f.title} onChange={e => setF(p => ({ ...p, title: e.target.value }))} /></div>
+      <div><label className="text-xs font-medium text-gray-600">Описание</label>
+        <textarea className="input-field w-full mt-1" rows={2} value={f.description} onChange={e => setF(p => ({ ...p, description: e.target.value }))} /></div>
+      <div><label className="text-xs font-medium text-gray-600">Планируемые человеко-часы</label>
+        <input type="number" className="input-field w-full mt-1" value={f.estimated_manhours} onChange={e => setF(p => ({ ...p, estimated_manhours: +e.target.value }))} /></div>
+      <div className="flex gap-2 pt-2">
+        <button onClick={() => onSubmit(f)} className="btn-primary px-4 py-2 rounded text-sm">Создать</button>
+        <button onClick={onCancel} className="bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm">Отмена</button>
       </div>
     </div>
   );

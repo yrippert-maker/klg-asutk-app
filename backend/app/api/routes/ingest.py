@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_roles
+from app.api.helpers import audit, paginate_query
 from app.db.session import get_db
 from app.models import IngestJobLog, MaintenanceTask, DefectReport, LimitedLifeComponent, LandingGearComponent, ChecklistItem, ChecklistTemplate, Aircraft
 
@@ -57,6 +58,7 @@ def create_ingest_log(payload: IngestLogCreate, db: Session = Depends(get_db), u
         finished_at=datetime.now(timezone.utc),
     )
     db.add(log)
+    audit(db, user, "create", "ingest_log", description=f"Ingest: {payload.job_name}")
     db.commit()
     db.refresh(log)
     return log
@@ -66,8 +68,11 @@ def create_ingest_log(payload: IngestLogCreate, db: Session = Depends(get_db), u
     "/ingest/logs",
     dependencies=[Depends(require_roles("admin", "authority_inspector"))],
 )
-def list_ingest_logs(db: Session = Depends(get_db), user=Depends(get_current_user)):
-    return db.query(IngestJobLog).order_by(IngestJobLog.created_at.desc()).limit(200).all()
+def list_ingest_logs(
+    page: int = 1, per_page: int = 50,
+    db: Session = Depends(get_db), user=Depends(get_current_user)):
+    q = db.query(IngestJobLog).order_by(IngestJobLog.created_at.desc())
+    return paginate_query(q, page, per_page)
 
 
 def _parse_csv(content: bytes) -> tuple[list[str], list[dict[str, Any]]]:
@@ -259,6 +264,7 @@ def import_table(
     else:
         raise HTTPException(status_code=400, detail=f"Неподдерживаемый target: {payload.target}")
     
+    audit(db, user, "create", "ingest_import", description=f"Import {payload.target}: {imported} rows")
     db.commit()
     
     return {
