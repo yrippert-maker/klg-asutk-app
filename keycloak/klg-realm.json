@@ -1,0 +1,159 @@
+{
+  "realm": "klg",
+  "displayName": "КЛГ АСУ ТК",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "loginTheme": "keycloak",
+  "accessTokenLifespan": 3600,
+  "ssoSessionIdleTimeout": 7200,
+  "clients": [
+    {
+      "clientId": "klg-frontend",
+      "name": "КЛГ Frontend",
+      "rootUrl": "http://localhost:3000",
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "https://klg.refly.ru/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "https://klg.refly.ru"
+      ],
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true
+    },
+    {
+      "clientId": "klg-backend",
+      "name": "КЛГ Backend",
+      "bearerOnly": true,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Администратор системы"
+      },
+      {
+        "name": "authority_inspector",
+        "description": "Инспектор авиационного органа"
+      },
+      {
+        "name": "operator_manager",
+        "description": "Менеджер оператора ВС"
+      },
+      {
+        "name": "operator_user",
+        "description": "Сотрудник оператора ВС"
+      },
+      {
+        "name": "mro_manager",
+        "description": "Менеджер организации ТОиР"
+      },
+      {
+        "name": "mro_user",
+        "description": "Специалист ТОиР"
+      },
+      {
+        "name": "favt_inspector",
+        "description": "Инспектор ФАВТ — доступ к панели регулятора (только чтение)",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "admin",
+      "email": "admin@klg.refly.ru",
+      "firstName": "Администратор",
+      "lastName": "Системы",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "admin"
+      ]
+    },
+    {
+      "username": "inspector",
+      "email": "inspector@klg.refly.ru",
+      "firstName": "Иванов",
+      "lastName": "И.И.",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "inspector",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "authority_inspector"
+      ]
+    },
+    {
+      "username": "operator",
+      "email": "operator@aeroflot.ru",
+      "firstName": "Петров",
+      "lastName": "А.В.",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "operator",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "operator_manager"
+      ],
+      "attributes": {
+        "organization_id": [
+          "org-aeroflot"
+        ]
+      }
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "klg_roles",
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "realm_roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "realm_access.roles",
+            "access.token.claim": "true",
+            "id.token.claim": "true"
+          }
+        },
+        {
+          "name": "organization_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "claim.name": "organization_id",
+            "user.attribute": "organization_id",
+            "access.token.claim": "true",
+            "id.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

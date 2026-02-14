@@ -1,0 +1,48 @@
+# КЛГ АСУ ТК — Prometheus Alerting Rules
+groups:
+  - name: klg-backend
+    rules:
+      - alert: HighErrorRate
+        expr: rate(klg_http_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on KLG backend"
+          description: "Error rate is {{ $value }}% over the last 5 minutes."
+
+      - alert: SlowResponses
+        expr: histogram_quantile(0.95, rate(klg_http_request_duration_seconds_bucket[5m])) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow API responses"
+          description: "95th percentile latency is {{ $value }}s."
+
+      - alert: BackendDown
+        expr: up{job="klg-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "KLG backend is down"
+          description: "Backend has been unreachable for 2+ minutes."
+
+      - alert: HighRequestRate
+        expr: rate(klg_http_requests_total[1m]) > 100
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High request rate"
+          description: "{{ $value }} requests/sec sustained for 5+ minutes."
+
+      - alert: DatabaseErrors
+        expr: increase(klg_http_errors_total{status="500"}[10m]) > 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Multiple 500 errors"
+          description: "{{ $value }} 500 errors in the last 10 minutes."

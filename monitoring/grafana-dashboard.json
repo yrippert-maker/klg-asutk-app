@@ -1,0 +1,44 @@
+{
+  "dashboard": {
+    "title": "КЛГ АСУ ТК — API Monitoring",
+    "uid": "klg-api",
+    "timezone": "Europe/Moscow",
+    "panels": [
+      {
+        "title": "Request Rate",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "targets": [{ "expr": "rate(klg_http_requests_total[5m])", "legendFormat": "{{ method }} {{ path }}" }]
+      },
+      {
+        "title": "Error Rate",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "targets": [{ "expr": "rate(klg_http_errors_total[5m])", "legendFormat": "{{ status }}" }]
+      },
+      {
+        "title": "Latency (p95)",
+        "type": "gauge",
+        "gridPos": { "h": 8, "w": 6, "x": 0, "y": 8 },
+        "targets": [{ "expr": "histogram_quantile(0.95, rate(klg_http_request_duration_seconds_bucket[5m]))" }]
+      },
+      {
+        "title": "Total Requests (24h)",
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 6, "x": 6, "y": 8 },
+        "targets": [{ "expr": "increase(klg_http_requests_total[24h])" }]
+      },
+      {
+        "title": "Active Endpoints",
+        "type": "table",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+        "targets": [{ "expr": "topk(10, sum by (path) (rate(klg_http_requests_total[1h])))", "format": "table" }]
+      }
+    ],
+    "templating": {
+      "list": [
+        { "name": "method", "type": "query", "query": "label_values(klg_http_requests_total, method)" }
+      ]
+    }
+  }
+}

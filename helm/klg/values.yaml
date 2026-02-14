@@ -1,0 +1,55 @@
+replicaCount: 2
+
+backend:
+  image:
+    repository: registry.refly.ru/klg-backend
+    tag: "latest"
+  port: 8000
+  resources:
+    requests: { cpu: "250m", memory: "512Mi" }
+    limits: { cpu: "1", memory: "1Gi" }
+  env:
+    DATABASE_URL: "postgresql://klg:klg@postgresql:5432/klg"
+    REDIS_URL: "redis://redis:6379"
+    ENABLE_RLS: "true"
+    RATE_LIMIT_PER_MINUTE: "60"
+
+frontend:
+  image:
+    repository: registry.refly.ru/klg-frontend
+    tag: "latest"
+  port: 3000
+  resources:
+    requests: { cpu: "100m", memory: "256Mi" }
+    limits: { cpu: "500m", memory: "512Mi" }
+
+postgresql:
+  enabled: true
+  auth:
+    username: klg
+    password: klg
+    database: klg
+  primary:
+    persistence:
+      size: 10Gi
+
+redis:
+  enabled: true
+  auth:
+    enabled: false
+
+keycloak:
+  enabled: false
+  realm: klg
+
+ingress:
+  enabled: true
+  className: nginx
+  host: klg.refly.ru
+  tls: true
+  clusterIssuer: letsencrypt-prod
+
+monitoring:
+  enabled: true
+  prometheus:
+    scrapeInterval: 15s

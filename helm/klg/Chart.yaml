@@ -1,0 +1,10 @@
+apiVersion: v2
+name: klg-asutk
+description: КЛГ АСУ ТК — Airworthiness Control System
+version: 2.1.0
+appVersion: "2.1.0"
+type: application
+keywords: [aviation, safety, airworthiness]
+maintainers:
+  - name: REFLY
+    email: dev@refly.ru
