@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { PageLayout, DataTable, StatusBadge, EmptyState } from '@/components/ui';
+import { risksApi } from '@/lib/api/api-client';
 
 export default function RisksPage() {
   const [risks, setRisks] = useState([] as any[]);
@@ -8,8 +9,7 @@ export default function RisksPage() {
   const [filter, setFilter] = useState('');
   useEffect(() => {
     setLoading(true);
-    const url = '/api/v1/risk-alerts' + (filter ? '?severity=' + filter : '');
-    fetch(url).then(r => r.json()).then(d => { setRisks(d.items || []); });
+    risksApi.list(filter ? { severity: filter } : {}).then(d => { setRisks(d.items || []); setLoading(false); }).catch(() => setLoading(false));
   }, [filter]);
   return (
     <>

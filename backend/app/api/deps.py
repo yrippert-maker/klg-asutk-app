@@ -1,24 +1,16 @@
 """
 FastAPI dependencies — auth, DB, roles.
 Supports both DEV mode and Keycloak OIDC.
+Единая точка импорта get_db для всех роутов и тестов.
 """
-import os
 from fastapi import Depends, HTTPException, Header
-from sqlalchemy.orm import Session
 
-from app.db.session import SessionLocal
+from app.db.session import get_db
+from app.core.config import settings
 from app.api.oidc import verify_oidc_token, extract_user_from_claims
 
-ENABLE_DEV_AUTH = os.getenv("ENABLE_DEV_AUTH", "true").lower() == "true"
-DEV_TOKEN = os.getenv("DEV_TOKEN", "dev")
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+ENABLE_DEV_AUTH = settings.ENABLE_DEV_AUTH
+DEV_TOKEN = settings.DEV_TOKEN
 
 
 # Dev user fallback

@@ -5,7 +5,7 @@ from sqlalchemy import func
 
 from app.api.deps import get_current_user
 from app.api.helpers import is_operator, is_authority
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.models import Aircraft, RiskAlert, Organization, Audit
 
 router = APIRouter(tags=["stats"])

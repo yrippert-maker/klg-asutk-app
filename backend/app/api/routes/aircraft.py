@@ -8,7 +8,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, require_roles
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.models import Aircraft, AircraftType
 from app.models.organization import Organization
 from app.models.audit_log import AuditLog

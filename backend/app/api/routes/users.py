@@ -6,7 +6,7 @@ from datetime import datetime
 
 from app.api.deps import get_current_user, require_roles
 from app.api.helpers import get_org_name, is_authority, paginate_query
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.models.user import User
 from app.schemas.common import _coerce_datetime
 

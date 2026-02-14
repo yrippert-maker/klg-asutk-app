@@ -5,7 +5,7 @@ import os
 
 from app.api.deps import get_current_user
 from app.api.helpers import audit
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.models import Attachment
 from app.schemas.attachment import AttachmentOut
 from app.services.storage import save_upload

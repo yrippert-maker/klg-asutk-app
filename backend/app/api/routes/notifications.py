@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.api.helpers import paginate_query
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.models import Notification
 from app.schemas.notification import NotificationOut
 

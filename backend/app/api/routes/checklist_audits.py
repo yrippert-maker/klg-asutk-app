@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_roles
 from app.api.helpers import audit as audit_log, filter_by_org, paginate_query, check_aircraft_access
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.models import Audit, AuditResponse, Finding, ChecklistTemplate, ChecklistItem, Aircraft
 from app.schemas.audit import AuditCreate, AuditOut, AuditResponseCreate, AuditResponseOut, FindingOut
 from app.services.ws_manager import ws_manager, make_notification

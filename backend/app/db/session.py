@@ -3,7 +3,7 @@ Database session management.
 Sync engine for Alembic migrations + async-compatible session for routes.
 Production: use connection pool with proper limits.
 """
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, Session
 
 from app.core.config import settings
@@ -45,13 +45,9 @@ def _reset_tenant(dbapi_conn, connection_record, connection_proxy):
 
 
 def set_tenant(db: Session, org_id: str | None):
-    """Set the current tenant for RLS policies."""
-    if org_id and not _is_sqlite:
-        db.execute(
-            __import__("sqlalchemy").text(
-                f"SET LOCAL app.current_org_id = '{org_id}'"
-            )
-        )
+    """Set the current tenant for RLS policies. Uses bound parameter to avoid SQL injection."""
+    if org_id is not None and not _is_sqlite:
+        db.execute(text("SET LOCAL app.current_org_id = :org_id").bindparams(org_id=org_id or ""))
 
 
 # ---------------------------------------------------------------------------

@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse
 from app.core.config import settings
 from app.api.deps import get_current_user
 from app.api.helpers import audit as audit_log
-from app.db.session import get_db as get_pg_db
+from app.api.deps import get_db as get_pg_db
 
 router = APIRouter(prefix="/inbox", tags=["inbox"])
 

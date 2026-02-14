@@ -2,6 +2,7 @@
  * Единый логгер приложения. Используйте вместо console.log.
  * В production можно заменить вывод на отправку в систему мониторинга.
  */
+/* eslint-disable no-console -- this file implements the logger using console */
 const isDev = typeof process !== "undefined" && process.env?.NODE_ENV === "development";
 
 function noop(): void {}

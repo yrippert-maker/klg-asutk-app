@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, require_roles
 from app.services.email_service import email_service
 from app.api.helpers import audit, filter_by_org, paginate_query
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.models import RiskAlert, Aircraft
 from app.schemas.risk_alert import RiskAlertOut
 from app.services.risk_scanner import scan_risks

@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { PageLayout, StatusBadge } from '@/components/ui';
 import Link from 'next/link';
+import { apiFetch } from '@/lib/api/api-client';
 
 interface DashboardData {
   overview: any; directives: any; lifeLimits: any; personnel: any; risks: any;
@@ -36,14 +37,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/v1/stats').then(r => r.json()).catch(() => null),
-      fetch('/api/v1/airworthiness-core/directives?status=open').then(r => r.json()).catch(() => ({ total: 0, items: [] })),
-      fetch('/api/v1/airworthiness-core/life-limits').then(r => r.json()).catch(() => ({ total: 0, items: [] })),
-      fetch('/api/v1/personnel-plg/compliance-report').then(r => r.json()).catch(() => null),
-      fetch('/api/v1/risk-alerts').then(r => r.json()).catch(() => ({ total: 0 })),
-      fetch('/api/v1/work-orders/stats/summary').then(r => r.json()).catch(() => ({ total: 0, in_progress: 0, aog: 0 })),
-      fetch('/api/v1/defects/?status=open').then(r => r.json()).catch(() => ({ total: 0 })),
-      fetch('/api/v1/fgis-revs/status').then(r => r.json()).catch(() => ({ connection_status: 'unknown' })),
+      apiFetch('/stats').catch(() => null),
+      apiFetch<{ total?: number; items?: unknown[] }>('/airworthiness-core/directives?status=open').catch(() => ({ total: 0, items: [] })),
+      apiFetch<{ total?: number; items?: unknown[] }>('/airworthiness-core/life-limits').catch(() => ({ total: 0, items: [] })),
+      apiFetch('/personnel-plg/compliance-report').catch(() => null),
+      apiFetch<{ total?: number }>('/risk-alerts').catch(() => ({ total: 0 })),
+      apiFetch<{ total?: number; in_progress?: number; aog?: number }>('/work-orders/stats/summary').catch(() => ({ total: 0, in_progress: 0, aog: 0 })),
+      apiFetch<{ total?: number }>('/defects/?status=open').catch(() => ({ total: 0 })),
+      apiFetch<{ connection_status?: string }>('/fgis-revs/status').catch(() => ({ connection_status: 'unknown' })),
     ]).then(([overview, directives, lifeLimits, personnel, risks, woStats, openDefects, fgisStatus]) => {
       setData({ overview, directives, lifeLimits, personnel, risks, woStats, openDefects, fgisStatus });
       setLoading(false);

@@ -63,22 +63,24 @@ async def export_openapi():
 def detailed_health():
     """Расширенная проверка всех компонентов системы."""
     import time
+    from app.db.session import SessionLocal
+    from app.core.config import settings
+
     checks = {}
 
     # Database
     try:
-        from app.db.session import SessionLocal
         db = SessionLocal()
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db.close()
         checks["database"] = {"status": "ok", "type": "PostgreSQL"}
     except Exception as e:
         checks["database"] = {"status": "error", "error": str(e)[:100]}
 
-    # Redis
+    # Redis (from config)
     try:
         import redis
-        r = redis.Redis(host="localhost", port=6379, socket_timeout=2)
+        r = redis.from_url(settings.REDIS_URL, socket_timeout=2)
         r.ping()
         checks["redis"] = {"status": "ok"}
     except Exception:

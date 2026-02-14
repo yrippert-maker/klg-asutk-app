@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import get_current_user, require_roles
 from app.api.helpers import audit, diff_changes, is_authority, paginate_query
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.models import Organization, User, Aircraft, CertApplication
 from app.schemas.organization import OrganizationCreate, OrganizationOut, OrganizationUpdate
 

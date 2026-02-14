@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
+import { logInfo } from '@/lib/logger';
 
 // Эндпоинт для обновления нормативных документов
 // Должен вызываться автоматически раз в месяц через cron job или scheduled task
@@ -7,7 +8,7 @@ export async function POST(request: Request) {
   try {
     const { source } = await request.json().catch(() => ({}));
 
-    console.log(`Начато обновление нормативных документов для источника: ${source || 'все'}`);
+    logInfo(`Начато обновление нормативных документов для источника: ${source || 'все'}`);
 
     // В реальном приложении здесь будет:
     // 1. Загрузка документов с официальных сайтов (ICAO, EASA, FAA, МАК, АРМАК)

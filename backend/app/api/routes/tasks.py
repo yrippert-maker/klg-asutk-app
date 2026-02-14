@@ -5,7 +5,7 @@ from typing import List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.api.deps import get_current_user
 from app.api.helpers import is_authority
 from app.models.cert_application import CertApplication

@@ -151,14 +151,24 @@ app.add_middleware(RateLimitMiddleware)
 
 
 # ---------------------------------------------------------------------------
-# Global exception handler
+# Exception handlers (specific first, then generic)
 # ---------------------------------------------------------------------------
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Internal server error", "type": type(exc).__name__},
-    )
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from app.api.exceptions import (
+    validation_exception_handler,
+    pydantic_validation_error_handler,
+    integrity_error_handler,
+    sqlalchemy_error_handler,
+    general_exception_handler,
+)
+
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(ValidationError, pydantic_validation_error_handler)
+app.add_exception_handler(IntegrityError, integrity_error_handler)
+app.add_exception_handler(SQLAlchemyError, sqlalchemy_error_handler)
+app.add_exception_handler(Exception, general_exception_handler)
 
 
 # ---------------------------------------------------------------------------

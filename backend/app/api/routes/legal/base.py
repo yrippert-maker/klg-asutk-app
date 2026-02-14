@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.helpers import paginate_query
 from app.api.deps import get_current_user, require_roles
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.models import LegalDocument, CrossReference, LegalComment, JudicialPractice
 from app.schemas.legal import (
     JurisdictionCreate,

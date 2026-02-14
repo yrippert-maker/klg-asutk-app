@@ -68,11 +68,9 @@ export default function KnowledgeGraphVisualization({
           // Если не получилось через ESM, пробуем через require (для SSR)
           if (!Network || !DataSet) {
             if (typeof window === 'undefined') {
-              // eslint-disable-next-line @typescript-eslint/no-require-imports
               const visNetworkReq = require('vis-network');
               Network = visNetworkReq.Network || visNetworkReq.default?.Network || visNetworkReq;
-              
-              // eslint-disable-next-line @typescript-eslint/no-require-imports
+
               const visDataReq = require('vis-data');
               DataSet = visDataReq.DataSet || visDataReq.default?.DataSet || visDataReq;
             }

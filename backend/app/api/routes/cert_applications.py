@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, require_roles
 from app.services.email_service import email_service
 from app.api.helpers import audit, is_authority, get_org_name, paginate_query
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.integration.piv import push_event
 from app.models import CertApplication, ApplicationRemark, CertApplicationStatus
 from app.models.organization import Organization
