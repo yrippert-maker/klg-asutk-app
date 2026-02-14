@@ -22,10 +22,16 @@ REMARK_DEADLINE_DAYS = 30
 
 
 def _next_number(db: Session) -> str:
+    """Генерация номера с защитой от race condition через SELECT FOR UPDATE."""
     today = datetime.now(timezone.utc).strftime("%Y%m%d")
     prefix = f"KLG-{today}-"
-    cnt = db.query(CertApplication).filter(CertApplication.number.like(prefix + "%")).count()
-    return prefix + str(cnt + 1).zfill(4)
+    rows = (
+        db.query(CertApplication)
+        .filter(CertApplication.number.like(prefix + "%"))
+        .with_for_update()
+        .all()
+    )
+    return prefix + str(len(rows) + 1).zfill(4)
 
 
 def _serialize(app, db: Session) -> CertApplicationOut:

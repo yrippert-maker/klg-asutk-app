@@ -1,11 +1,14 @@
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 import os
 
 from app.api.deps import get_current_user
-from app.api.helpers import audit
+from app.api.helpers import audit, is_authority
 from app.api.deps import get_db
+from app.core.config import settings
 from app.models import Attachment
 from app.schemas.attachment import AttachmentOut
 from app.services.storage import save_upload
@@ -36,6 +39,8 @@ def get_attachment_meta(attachment_id: str, db: Session = Depends(get_db), user=
     att = db.query(Attachment).filter(Attachment.id == attachment_id).first()
     if not att:
         raise HTTPException(status_code=404, detail="Not found")
+    if not is_authority(user) and getattr(att, "uploaded_by_user_id", None) != user.id:
+        raise HTTPException(status_code=403, detail="Нет доступа к этому вложению")
     return att
 
 
@@ -44,7 +49,15 @@ def download_attachment(attachment_id: str, db: Session = Depends(get_db), user=
     att = db.query(Attachment).filter(Attachment.id == attachment_id).first()
     if not att:
         raise HTTPException(status_code=404, detail="Not found")
-    return FileResponse(path=att.storage_path, filename=att.filename, media_type=att.content_type)
+    if not is_authority(user) and getattr(att, "uploaded_by_user_id", None) != user.id:
+        raise HTTPException(status_code=403, detail="Нет доступа к этому вложению")
+    storage_root = Path(settings.INBOX_DATA_DIR).resolve()
+    real_path = Path(att.storage_path).resolve()
+    if not str(real_path).startswith(str(storage_root)):
+        raise HTTPException(status_code=403, detail="Доступ к файлу запрещён")
+    if not real_path.exists():
+        raise HTTPException(status_code=404, detail="Файл не найден на диске")
+    return FileResponse(path=str(real_path), filename=att.filename, media_type=att.content_type)
 
 
 @router.delete("/attachments/{attachment_id}", status_code=204)
@@ -52,7 +65,9 @@ def delete_attachment(attachment_id: str, db: Session = Depends(get_db), user=De
     att = db.query(Attachment).filter(Attachment.id == attachment_id).first()
     if not att:
         raise HTTPException(status_code=404, detail="Not found")
-    
+    if not is_authority(user) and getattr(att, "uploaded_by_user_id", None) != user.id:
+        raise HTTPException(status_code=403, detail="Нет доступа к этому вложению")
+
     # Удаляем файл с диска
     if os.path.exists(att.storage_path):
         try:

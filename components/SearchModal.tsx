@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { Modal, DataTable, StatusBadge } from '@/components/ui';
-import { Aircraft } from '@/lib/api';
+import { Aircraft } from '@/lib/api/api-client';
 
 interface Props { isOpen: boolean; onClose: () => void; aircraft: Aircraft[]; searchType?: string; }
 

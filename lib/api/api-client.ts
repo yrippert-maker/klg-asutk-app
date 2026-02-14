@@ -15,25 +15,16 @@ let _token: string | null = null;
 
 export function setAuthToken(token: string) {
   _token = token;
-  if (typeof window !== 'undefined') {
-    sessionStorage.setItem('klg_token', token);
-  }
+  // Токен хранится только в памяти — безопаснее чем sessionStorage.
+  // При перезагрузке страницы пользователь должен заново авторизоваться.
 }
 
 export function getAuthToken(): string | null {
-  if (_token) return _token;
-  if (typeof window !== 'undefined') {
-    _token = sessionStorage.getItem('klg_token');
-  }
-  // Fallback to dev token
   return _token || process.env.NEXT_PUBLIC_DEV_TOKEN || null;
 }
 
 export function clearAuthToken() {
   _token = null;
-  if (typeof window !== 'undefined') {
-    sessionStorage.removeItem('klg_token');
-  }
 }
 
 // ─── Base fetch ──────────────────────────────────
@@ -42,6 +33,26 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+// Тип ВС (обратная совместимость с импортом из @/lib/api)
+export interface Aircraft {
+  id: string;
+  registrationNumber: string;
+  serialNumber: string;
+  aircraftType: string;
+  model: string;
+  operator: string;
+  status: string;
+  flightHours?: number;
+  manufacturer?: string;
+  yearOfManufacture?: number;
+  maxTakeoffWeight?: number;
+  engineType?: string;
+  lastInspectionDate?: string;
+  nextInspectionDate?: string;
+  certificateExpiry?: string;
+  [key: string]: any;
 }
 
 /** Unified fetch with auth and 401 handling. Use for any backend path (e.g. /stats, /airworthiness-core/directives). */

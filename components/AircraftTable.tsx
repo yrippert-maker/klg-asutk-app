@@ -1,6 +1,6 @@
 'use client';
 
-import { Aircraft } from '@/lib/api';
+import { Aircraft } from '@/lib/api/api-client';
 
 interface AircraftTableProps {
   aircraft: Aircraft[];

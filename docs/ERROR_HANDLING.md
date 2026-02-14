@@ -323,7 +323,7 @@ throw new AppError('Сообщение', ErrorCode.NETWORK_ERROR, 500);
 import { useState } from 'react';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import ErrorDisplay from '@/components/ErrorDisplay';
-import { aircraftApi } from '@/lib/api';
+import { aircraftApi } from '@/lib/api/api-client';
 
 export default function AircraftList() {
   const { error, userFriendlyError, handleError, clearError, hasError } = useErrorHandler();
@@ -334,8 +334,8 @@ export default function AircraftList() {
     try {
       setLoading(true);
       clearError();
-      const data = await aircraftApi.getAircraft();
-      setAircraft(data);
+      const data = await aircraftApi.list();
+      setAircraft(data.items ?? []);
     } catch (err) {
       handleError(err, {
         action: 'загрузке списка воздушных судов',

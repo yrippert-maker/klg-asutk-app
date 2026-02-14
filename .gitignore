@@ -1,60 +1,33 @@
+# Environment variables
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # Dependencies
 node_modules/
-.pnp
-.pnp.js
-
-# Build
-.next/
-out/
-build/
-dist/
-
-# Python
-backend/venv/
 __pycache__/
-*.py[cod]
-*.egg-info/
-.pytest_cache/
-htmlcov/
-.coverage
-*.egg
+*.pyc
 
-# Защита .env файлов и секретов (никогда не коммитить)
-.env
-.env.local
-.env.development
-.env.production
-.env.*.local
-!.env.example
-*.pem
-*.key
-certs/
+# Build outputs
+.next/
+dist/
+build/
 
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
 
 # OS
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
-npm-debug.log*
-
-# Lock files (optional — uncomment if needed)
-# package-lock.json
-
-# Certificates (ФГИС РЭВС)
-certs/
-*.pem
-*.key
-
-# Backups
-backups/
-
-# Storage
-storage/
-attachments/

@@ -1,6 +1,6 @@
 'use client';
 import { Modal, DataTable, StatusBadge } from '@/components/ui';
-import { Aircraft } from '@/lib/api';
+import { Aircraft } from '@/lib/api/api-client';
 
 interface Props { isOpen: boolean; onClose: () => void; organization: string; aircraft: Aircraft[]; onEdit?: (a: Aircraft) => void; }
 

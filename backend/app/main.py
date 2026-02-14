@@ -110,6 +110,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ---------------------------------------------------------------------------
+# Request logging (после CORS, до роутеров)
+# ---------------------------------------------------------------------------
+app.add_middleware(RequestLoggerMiddleware)
 
 # ---------------------------------------------------------------------------
 # Prometheus metrics
@@ -127,18 +131,18 @@ from app.api.routes.backup import router as backup_router
 from app.api.routes.batch import router as batch_router
 from app.api.routes.export import router as export_router
 from app.api.routes.metrics import router as metrics_router, MetricsMiddleware
-app.include_router(fgis_revs_router, prefix=settings.API_V1_PREFIX, dependencies=[])
-app.include_router(notification_prefs_router, prefix=settings.API_V1_PREFIX, dependencies=[])
-app.include_router(import_export_router, prefix=settings.API_V1_PREFIX, dependencies=[])
-app.include_router(global_search_router, prefix=settings.API_V1_PREFIX, dependencies=[])
-app.include_router(work_orders_router, prefix=settings.API_V1_PREFIX, dependencies=[])
-app.include_router(defects_router, prefix=settings.API_V1_PREFIX, dependencies=[])
-app.include_router(airworthiness_core_router, prefix=settings.API_V1_PREFIX, dependencies=[])
-app.include_router(personnel_plg_router, prefix=settings.API_V1_PREFIX, dependencies=[])
-app.include_router(regulator_router, prefix=settings.API_V1_PREFIX, dependencies=[])
-app.include_router(backup_router, prefix=settings.API_V1_PREFIX, dependencies=[])
-app.include_router(batch_router, prefix=settings.API_V1_PREFIX, dependencies=[])
-app.include_router(export_router, prefix=settings.API_V1_PREFIX, dependencies=[])
+app.include_router(fgis_revs_router, prefix=settings.API_V1_PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(notification_prefs_router, prefix=settings.API_V1_PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(import_export_router, prefix=settings.API_V1_PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(global_search_router, prefix=settings.API_V1_PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(work_orders_router, prefix=settings.API_V1_PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(defects_router, prefix=settings.API_V1_PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(airworthiness_core_router, prefix=settings.API_V1_PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(personnel_plg_router, prefix=settings.API_V1_PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(regulator_router, prefix=settings.API_V1_PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(backup_router, prefix=settings.API_V1_PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(batch_router, prefix=settings.API_V1_PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(export_router, prefix=settings.API_V1_PREFIX, dependencies=AUTH_DEPENDENCY)
 app.include_router(metrics_router, prefix=settings.API_V1_PREFIX)
 app.add_middleware(MetricsMiddleware)
 
@@ -183,47 +187,24 @@ AUTH_DEPENDENCY = [Depends(get_current_user)]
 PREFIX = settings.API_V1_PREFIX
 
 app.include_router(health_router, prefix=PREFIX)
-app.include_router(stats_router, prefix=PREFIX, dependencies=[])
-app.include_router(organizations_router, prefix=PREFIX, dependencies=[])
-app.include_router(aircraft_router, prefix=PREFIX, dependencies=[])
-app.include_router(cert_applications_router, prefix=PREFIX, dependencies=[])
-app.include_router(attachments_router, prefix=PREFIX, dependencies=[])
-app.include_router(notifications_router, prefix=PREFIX, dependencies=[])
-app.include_router(ingest_router, prefix=PREFIX, dependencies=[])
-app.include_router(airworthiness_router, prefix=PREFIX, dependencies=[])
-app.include_router(modifications_router, prefix=PREFIX, dependencies=[])
-app.include_router(users_router, prefix=PREFIX, dependencies=[])
-app.include_router(legal_router, prefix=PREFIX, dependencies=[])
-app.include_router(risk_alerts_router, prefix=PREFIX, dependencies=[])
-app.include_router(checklists_router, prefix=PREFIX, dependencies=[])
-app.include_router(checklist_audits_router, prefix=PREFIX, dependencies=[])
-app.include_router(inbox_router, prefix=PREFIX, dependencies=[])
-app.include_router(tasks_router, prefix=PREFIX, dependencies=[])
-app.include_router(audit_router, prefix=PREFIX, dependencies=[])
+app.include_router(stats_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(organizations_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(aircraft_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(cert_applications_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(attachments_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(notifications_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(ingest_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(airworthiness_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(modifications_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(users_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(legal_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(risk_alerts_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(checklists_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(checklist_audits_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(inbox_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(tasks_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(audit_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
 
 # WebSocket (no prefix — direct path)
 from app.api.routes.ws_notifications import router as ws_router
 app.include_router(ws_router, prefix=PREFIX, dependencies=[])
-
-@app.on_event("startup")
-async def _run_migrations():
-    """Auto-apply pending migrations on startup."""
-    import os, logging
-    logger = logging.getLogger("klg.migrations")
-    migration_dir = os.path.join(os.path.dirname(__file__), "..", "migrations")
-    if os.path.exists(migration_dir):
-        from sqlalchemy import text
-        from app.db.session import SessionLocal
-        db = SessionLocal()
-        try:
-            for f in sorted(os.listdir(migration_dir)):
-                if f.endswith(".sql"):
-                    sql = open(os.path.join(migration_dir, f)).read()
-                    try:
-                        db.execute(text(sql))
-                        db.commit()
-                        logger.info(f"Migration applied: {f}")
-                    except Exception:
-                        db.rollback()  # Already applied or conflict
-        finally:
-            db.close()

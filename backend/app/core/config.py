@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     # Auth
     OIDC_ISSUER: str = "http://localhost:8180/realms/klg"
     OIDC_JWKS_URL: str = ""  # auto-derived from issuer if empty
+    OIDC_AUDIENCE: str = "account"
     ENABLE_DEV_AUTH: bool = False  # ONLY for development
     DEV_TOKEN: str = "dev"
     

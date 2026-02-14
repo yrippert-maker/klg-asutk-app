@@ -43,6 +43,21 @@ services:
     volumes:
       - minio_data:/data
 
+  # ─── Keycloak DB ───────────────────────────────
+  keycloak-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD:-keycloak}
+      POSTGRES_DB: keycloak
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   # ─── Auth (Keycloak) ───────────────────────────
   keycloak:
     image: quay.io/keycloak/keycloak:24.0
@@ -50,14 +65,14 @@ services:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:-admin}
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-klg}
-      KC_DB_USERNAME: ${DB_USER:-klg}
-      KC_DB_PASSWORD: ${DB_PASSWORD:-klg}
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-keycloak}
     command: start-dev
     ports:
       - "8080:8080"
     depends_on:
-      postgres:
+      keycloak-db:
         condition: service_healthy
 
   # ─── Backend (FastAPI) ─────────────────────────
@@ -73,7 +88,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_PASSWORD:-minioadmin}
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: klg
-      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required — set it in .env}
       ENVIRONMENT: ${ENVIRONMENT:-production}
       # ФГИС РЭВС
       FGIS_API_URL: ${FGIS_API_URL:-https://fgis-revs-test.favt.gov.ru/api/v2}
@@ -125,5 +140,6 @@ services:
 
 volumes:
   postgres_data:
+  keycloak_db_data:
   minio_data:
   attachments_data:
