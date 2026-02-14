@@ -75,6 +75,22 @@ Annex 1, 6, 7, 8, 19 · Doc 9734, 9760, 9859
 ### EASA
 Part-21 · Part-66 · Part-M · Part-CAMO · Part-145 · Part-ARO
 
+## CI/CD
+
+- **`.github/workflows/ci.yml`** — тесты backend (pytest), lint и сборка frontend, сборка Docker-образов при push в `main`.
+- **`.github/workflows/security.yml`** — проверки безопасности: `npm audit`, `pip-audit`, Gitleaks (секреты), Dependency Review в PR; запуск при push/PR в `main` и по расписанию (еженедельно).
+
+Подробнее: [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md).
+
+## Документация
+
+| Документ | Описание |
+|----------|----------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архитектура системы (слои, потоки данных, безопасность) |
+| [docs/ops/MONITORING.md](docs/ops/MONITORING.md) | Мониторинг production (Prometheus, health, алертинг, Grafana) |
+| [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) | Security-аудит: инструменты и процедуры |
+| [docs/SECURITY.md](docs/SECURITY.md) | Правила безопасности и отчёт об уязвимостях |
+
 ## Тесты
 
 ```bash

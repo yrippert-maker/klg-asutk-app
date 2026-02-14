@@ -1,0 +1,93 @@
+name: КЛГ АСУ ТК CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: klg
+          POSTGRES_PASSWORD: klg
+          POSTGRES_DB: klg
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pytest pytest-cov openpyxl reportlab
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql://klg:klg@localhost:5432/klg
+        run: |
+          for f in backend/migrations/*.sql; do
+            PGPASSWORD=klg psql -h localhost -U klg -d klg -f "$f" || true
+          done
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://klg:klg@localhost:5432/klg
+          ENABLE_DEV_AUTH: "true"
+          DEV_TOKEN: test
+        run: |
+          cd backend
+          python -m pytest -v --tb=short --junitxml=results.xml
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: backend/results.xml
+
+  frontend-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-lint]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t klg-backend:latest ./backend
+
+      - name: Build frontend image
+        run: docker build -t klg-frontend:latest .

@@ -1,0 +1,35 @@
+# Gitleaks: правила поиска секретов в репозитории
+# https://github.com/gitleaks/gitleaks
+
+title = "KLG ASUTK - Secret detection"
+
+[extend]
+useDefault = true
+
+# Дополнительные паттерны под проект
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)(api[_-]?key|apikey|api_key)\s*[:=]\s*['"]?[a-zA-Z0-9_\-]{16,}['"]?'''
+tags = ["key", "api"]
+
+[[rules]]
+id = "database-url"
+description = "Database URL with password"
+regex = '''(postgres|mysql|mongodb)(:\/\/|:)['"]?[^'"\s]+:([^'"\s@]+)@'''
+tags = ["database"]
+
+# Исключения: примеры и тестовые значения
+[allowlist]
+description = "Allowlist for test/example values"
+paths = [
+  '''\.env\.example''',
+  '''backend/\.env\.example''',
+  '''docs/''',
+  '''\.md$''',
+]
+regexes = [
+  '''(change-me|example|test|dummy|xxx|your[-_]?key)''',
+  '''postgresql://klg:klg@''',
+  '''redis://localhost''',
+]
