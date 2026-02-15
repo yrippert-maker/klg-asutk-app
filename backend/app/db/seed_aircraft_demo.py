@@ -5,7 +5,8 @@
 """
 
 from app.db.session import SessionLocal
-from app.models.aircraft import Aircraft, AircraftType
+from app.models.aircraft_db import Aircraft
+from app.models.aircraft_type import AircraftType
 from app.models.organization import Organization
 
 # (registration_number, manufacturer, model, operator_name, serial_number, status, total_time, total_cycles)
@@ -92,9 +93,7 @@ def seed_aircraft_demo():
                 aircraft_type_id=type_id,
                 operator_id=op_id,
                 serial_number=serial,
-                current_status=status,
-                total_time=float(t_h),
-                total_cycles=int(t_c),
+                status=status,
             ))
             created += 1
         db.commit()

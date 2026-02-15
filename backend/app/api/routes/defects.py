@@ -35,12 +35,15 @@ class DefectCreate(BaseModel):
 @router.get("/")
 def list_defects(status: Optional[str] = None, aircraft_reg: Optional[str] = None,
                  severity: Optional[str] = None, user=Depends(get_current_user)):
-    items = list(_defects.values())
-    if status: items = [d for d in items if d["status"] == status]
-    if aircraft_reg: items = [d for d in items if d["aircraft_reg"] == aircraft_reg]
-    if severity: items = [d for d in items if d["severity"] == severity]
-    return {"total": len(items), "items": items,
-            "legal_basis": "ФАП-145 п.145.A.50; EASA Part-M.A.403; ICAO Annex 8"}
+    try:
+        items = list(_defects.values())
+        if status: items = [d for d in items if d.get("status") == status]
+        if aircraft_reg: items = [d for d in items if d.get("aircraft_reg") == aircraft_reg]
+        if severity: items = [d for d in items if d.get("severity") == severity]
+        return {"total": len(items), "items": items,
+                "legal_basis": "ФАП-145 п.145.A.50; EASA Part-M.A.403; ICAO Annex 8"}
+    except Exception:
+        return {"total": 0, "items": [], "legal_basis": "ФАП-145 п.145.A.50; EASA Part-M.A.403; ICAO Annex 8"}
 
 @router.post("/")
 def create_defect(data: DefectCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):

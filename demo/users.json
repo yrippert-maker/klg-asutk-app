@@ -1,0 +1,44 @@
+{
+  "demo_users": [
+    {
+      "id": "demo-admin-001",
+      "name": "Админ Системы",
+      "email": "admin@demo.klg.refly.ru",
+      "role": "admin",
+      "org_id": null,
+      "description": "Полный доступ ко всем модулям и организациям"
+    },
+    {
+      "id": "demo-inspector-001",
+      "name": "Иванов И.П. (Инспектор ФАВТ)",
+      "email": "inspector@demo.klg.refly.ru",
+      "role": "authority_inspector",
+      "org_id": null,
+      "description": "Инспекция, рассмотрение заявок, аудиты, панель ФАВТ"
+    },
+    {
+      "id": "demo-operator-mgr-001",
+      "name": "Петров А.С. (Оператор — руководитель)",
+      "email": "operator-mgr@demo.klg.refly.ru",
+      "role": "operator_manager",
+      "org_id": "org-airline-001",
+      "description": "Управление парком ВС, заявки на сертификацию"
+    },
+    {
+      "id": "demo-mro-mgr-001",
+      "name": "Сидоров В.Н. (ТОиР — руководитель)",
+      "email": "mro-mgr@demo.klg.refly.ru",
+      "role": "mro_manager",
+      "org_id": "org-mro-001",
+      "description": "Наряды на ТО, чек-листы, дефекты, CRS"
+    },
+    {
+      "id": "demo-operator-user-001",
+      "name": "Козлова Е.А. (Оператор — специалист)",
+      "email": "operator@demo.klg.refly.ru",
+      "role": "operator_user",
+      "org_id": "org-airline-001",
+      "description": "Просмотр ВС, создание заявок, уведомления"
+    }
+  ]
+}

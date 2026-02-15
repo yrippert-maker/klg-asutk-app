@@ -35,6 +35,7 @@
     "init:all-db": "tsx scripts/init-all-databases.ts"
   },
   "dependencies": {
+    "lucide-react": "^0.460.0",
     "@sentry/nextjs": "^10.36.0",
     "@types/dompurify": "^3.0.5",
     "@types/jsdom": "^27.0.0",

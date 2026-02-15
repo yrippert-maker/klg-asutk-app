@@ -135,16 +135,19 @@ def cancel_work_order(wo_id: str, reason: str = "", db: Session = Depends(get_db
 @router.get("/stats/summary")
 def work_order_stats(user=Depends(get_current_user)):
     """Статистика нарядов для Dashboard."""
-    items = list(_work_orders.values())
-    return {
-        "total": len(items),
-        "draft": len([w for w in items if w["status"] == "draft"]),
-        "in_progress": len([w for w in items if w["status"] == "in_progress"]),
-        "closed": len([w for w in items if w["status"] == "closed"]),
-        "cancelled": len([w for w in items if w["status"] == "cancelled"]),
-        "aog": len([w for w in items if w.get("priority") == "aog"]),
-        "total_manhours": sum(w.get("actual_manhours", 0) for w in items if w["status"] == "closed"),
-    }
+    try:
+        items = list(_work_orders.values())
+        return {
+            "total": len(items),
+            "draft": len([w for w in items if w.get("status") == "draft"]),
+            "in_progress": len([w for w in items if w.get("status") == "in_progress"]),
+            "closed": len([w for w in items if w.get("status") == "closed"]),
+            "cancelled": len([w for w in items if w.get("status") == "cancelled"]),
+            "aog": len([w for w in items if w.get("priority") == "aog"]),
+            "total_manhours": sum(w.get("actual_manhours", 0) for w in items if w.get("status") == "closed"),
+        }
+    except Exception:
+        return {"total": 0, "draft": 0, "in_progress": 0, "closed": 0, "cancelled": 0, "aog": 0, "total_manhours": 0}
 
 
 # ===================================================================

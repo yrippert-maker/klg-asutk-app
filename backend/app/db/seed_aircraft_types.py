@@ -5,7 +5,7 @@
 """
 
 from app.db.session import SessionLocal
-from app.models.aircraft import AircraftType
+from app.models.aircraft_type import AircraftType
 
 
 def seed_aircraft_types():

@@ -4,6 +4,12 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import Logo from '@/components/Logo';
 
+const DEMO_ACCOUNTS = [
+  { token: 'dev', icon: '👤', label: 'Разработчик', desc: 'Локальная разработка' },
+  { token: 'demo-admin', icon: '🛡️', label: 'Администратор', desc: 'Полный доступ' },
+  { token: 'demo-inspector', icon: '📋', label: 'Инспектор', desc: 'Проверки и аудит' },
+];
+
 export default function LoginPage() {
   const { login, isAuthenticated, loading } = useAuth();
   const router = useRouter();
@@ -13,11 +19,16 @@ export default function LoginPage() {
 
   if (!loading && isAuthenticated) { router.push('/dashboard'); return null; }
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(''); setSubmitting(true);
-    try { await login(token || 'dev'); router.push('/dashboard'); }
+  const doLogin = async (authToken: string) => {
+    setError(''); setSubmitting(true);
+    try { await login(authToken || 'dev'); router.push('/dashboard'); }
     catch { setError('Неверный токен или сервер недоступен'); }
     finally { setSubmitting(false); }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await doLogin(token || 'dev');
   };
 
   return (
@@ -39,6 +50,26 @@ export default function LoginPage() {
             {submitting ? 'Вход...' : 'Войти'}
           </button>
         </form>
+        <div className="mt-6">
+          <div className="text-sm font-bold text-gray-600 mb-3">Или войти под демо-аккаунтом:</div>
+          <div className="grid grid-cols-1 gap-2">
+            {DEMO_ACCOUNTS.map(acc => (
+              <button
+                key={acc.token}
+                type="button"
+                onClick={() => { setToken(acc.token); doLogin(acc.token); }}
+                disabled={submitting}
+                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all text-left disabled:opacity-60"
+              >
+                <span className="text-xl">{acc.icon}</span>
+                <div>
+                  <div className="font-bold text-sm text-primary-500">{acc.label}</div>
+                  <div className="text-xs text-gray-500">{acc.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="text-center mt-6 text-xs text-gray-300">АО «REFLY» · {new Date().getFullYear()}</div>
       </div>
     </div>

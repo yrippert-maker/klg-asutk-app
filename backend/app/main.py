@@ -54,6 +54,24 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning("Document templates seed skipped: %s", e)
+    try:
+        from app.db.seed_organizations import seed_organizations
+        seed_organizations()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Organizations seed skipped: %s", e)
+    try:
+        from app.db.seed_aircraft_types import seed_aircraft_types
+        seed_aircraft_types()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Aircraft types seed skipped: %s", e)
+    try:
+        from app.db.seed_aircraft_demo import seed_aircraft_demo
+        seed_aircraft_demo()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Aircraft demo seed skipped: %s", e)
     # Планировщик рисков (передаём app для shutdown hook)
     setup_scheduler(app)
     yield

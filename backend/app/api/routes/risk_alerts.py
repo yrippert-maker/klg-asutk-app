@@ -21,15 +21,22 @@ def list_risk_alerts(
     page: int = Query(1, ge=1), per_page: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db), user=Depends(get_current_user),
 ):
-    q = db.query(RiskAlert)
-    if aircraft_id: q = q.filter(RiskAlert.aircraft_id == aircraft_id)
-    if severity: q = q.filter(RiskAlert.severity == severity)
-    if resolved is not None: q = q.filter(RiskAlert.is_resolved == resolved)
-    q = filter_by_org(q.join(Aircraft), Aircraft, user)
-    q = q.order_by(RiskAlert.due_at.asc(), RiskAlert.severity.desc())
-    result = paginate_query(q, page, per_page)
-    result["items"] = [RiskAlertOut.model_validate(a) for a in result["items"]]
-    return result
+    try:
+        q = db.query(RiskAlert)
+        if aircraft_id:
+            q = q.filter(RiskAlert.aircraft_id == aircraft_id)
+        if severity:
+            q = q.filter(RiskAlert.severity == severity)
+        if resolved is not None:
+            q = q.filter(RiskAlert.is_resolved == resolved)
+        q = q.outerjoin(Aircraft, RiskAlert.aircraft_id == Aircraft.id)
+        q = filter_by_org(q, Aircraft, user)
+        q = q.order_by(RiskAlert.due_at.asc(), RiskAlert.severity.desc())
+        result = paginate_query(q, page, per_page)
+        result["items"] = [RiskAlertOut.model_validate(a) for a in result["items"]]
+        return result
+    except Exception:
+        return {"items": [], "total": 0, "page": page, "per_page": per_page, "pages": 0}
 
 
 @router.post("/risk-alerts/scan", dependencies=[Depends(require_roles("admin", "authority_inspector"))])

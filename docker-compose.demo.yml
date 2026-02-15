@@ -1,0 +1,60 @@
+# КЛГ АСУ ТК — Demo deployment (до 5 удалённых клиентов)
+# Использование:
+#   С dev-токенами: docker compose -f docker-compose.yml -f docker-compose.demo.yml --profile demo up -d
+#   С Keycloak:     docker compose -f docker-compose.yml -f docker-compose.demo.yml --profile demo --profile keycloak up -d
+
+services:
+  # ─── Reverse Proxy (Caddy — auto HTTPS) ───────
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      DEMO_DOMAIN: ${DEMO_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./demo/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    profiles:
+      - demo
+
+  # ─── Override backend для demo ─────────────────
+  backend:
+    environment:
+      ENABLE_DEV_AUTH: ${ENABLE_DEV_AUTH:-true}
+      DEV_TOKEN: ${DEV_TOKEN:-dev}
+      JWT_SECRET: ${JWT_SECRET:-demo-secret-change-in-production-2026}
+      JWT_ALG: HS256
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,https://${DEMO_DOMAIN:-localhost}}
+
+  # ─── Override frontend для demo ────────────────
+  frontend:
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-wss://${DEMO_DOMAIN:-localhost}/ws}
+      NEXT_PUBLIC_USE_MOCK_DATA: "false"
+      NEXT_PUBLIC_DEV_TOKEN: ""
+
+  # ─── Demo seed: загрузка тестовых данных ───────
+  demo-seed:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-klg}:${DB_PASSWORD:-klg}@postgres:5432/${DB_NAME:-klg}
+    command: ["python", "-m", "app.demo.seed"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - demo
+    restart: "no"
+
+volumes:
+  caddy_data:
+  caddy_config:

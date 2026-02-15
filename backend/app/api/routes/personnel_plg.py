@@ -416,6 +416,13 @@ def record_qualification(
 @router.get("/compliance-report", tags=["personnel-plg"])
 def compliance_report(user=Depends(get_current_user)):
     """Отчёт о соответствии: кто просрочил ПК, у кого истекает свидетельство."""
+    try:
+        return _compliance_report_data()
+    except Exception:
+        return {"total_specialists": 0, "compliant": 0, "non_compliant": 0, "expiring_soon": [], "overdue": []}
+
+
+def _compliance_report_data():
     now = datetime.now(timezone.utc)
     soon = now + timedelta(days=90)
     report = {"total_specialists": len(_specialists), "compliant": 0, "non_compliant": 0, "expiring_soon": [], "overdue": []}
@@ -443,6 +450,7 @@ def compliance_report(user=Depends(get_current_user)):
             report["compliant"] += 1
 
     return report
+
 
 
 

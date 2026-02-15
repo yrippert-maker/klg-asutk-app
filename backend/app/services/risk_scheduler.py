@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from contextlib import contextmanager
 
 from app.db.session import SessionLocal
-from app.services.risk_scanner import scan_risks as scan_risks_for_aircraft
+from app.services.risk_scanner import scan_risks
 
 logger = logging.getLogger(__name__)
 
@@ -26,25 +26,19 @@ def _get_db():
 
 
 def run_scheduled_scan():
-    """Run a full risk scan across all aircraft."""
+    """Run a full risk scan across all aircraft (scan_risks обрабатывает все ВС за один вызов)."""
     global _last_scan
     logger.info("Starting scheduled risk scan...")
 
     with _get_db() as db:
-        from app.models import Aircraft
-        aircraft_list = db.query(Aircraft).all()
-
-        total_created = 0
-        for ac in aircraft_list:
-            try:
-                created = scan_risks_for_aircraft(db, ac)
-                total_created += created
-            except Exception as e:
-                logger.error(f"Risk scan error for {ac.id}: {e}")
-
-        db.commit()
+        try:
+            total_created = scan_risks(db)
+            db.commit()
+        except Exception as e:
+            logger.error("Risk scan error: %s", e)
+            raise
         _last_scan = datetime.now(timezone.utc)
-        logger.info(f"Scheduled scan complete: {total_created} new risks from {len(aircraft_list)} aircraft")
+        logger.info("Scheduled scan complete: %s new risks", total_created)
 
     return total_created
 

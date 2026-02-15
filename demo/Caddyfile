@@ -1,0 +1,53 @@
+# КЛГ АСУ ТК — Caddy reverse proxy
+# DEMO_DOMAIN задаётся в docker-compose (по умолчанию localhost)
+# Для HTTPS с реальным доменом задайте DEMO_DOMAIN=demo.klg.refly.ru
+
+{env.DEMO_DOMAIN} {
+    # Frontend (Next.js)
+    reverse_proxy frontend:3000
+
+    # Backend API
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+
+    # WebSocket
+    handle /ws/* {
+        reverse_proxy backend:8000
+    }
+
+    # Swagger docs
+    handle /docs {
+        reverse_proxy backend:8000
+    }
+    handle /redoc {
+        reverse_proxy backend:8000
+    }
+    handle /openapi.json {
+        reverse_proxy backend:8000
+    }
+
+    # Keycloak (если запущен)
+    handle /auth/* {
+        reverse_proxy keycloak:8080
+    }
+
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+
+    # Сжатие
+    encode gzip zstd
+
+    # Логи
+    log {
+        output file /data/access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+}
