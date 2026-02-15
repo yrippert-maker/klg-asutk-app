@@ -5,6 +5,7 @@ import './globals.css'
 import { Providers } from './providers'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import SkipToMain from '@/components/SkipToMain'
+import AIAssistant from '@/components/AIAssistant'
 
 export const metadata: Metadata = {
   title: 'REFLY — Контроль лётной годности',
@@ -30,7 +31,8 @@ export default function RootLayout({
         <Providers>
           <ErrorBoundary>
             <SkipToMain />
-          {children}
+            {children}
+            <AIAssistant />
           </ErrorBoundary>
         </Providers>
         <Script id="sw-register" strategy="afterInteractive">

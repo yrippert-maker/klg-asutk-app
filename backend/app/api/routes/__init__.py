@@ -16,7 +16,7 @@ from .checklist_audits import router as checklist_audits_router
 from .inbox import router as inbox_router
 from .tasks import router as tasks_router
 from .audit import router as audit_router
-from .ai import router as ai_router
+from .ai_assistant import router as ai_router
 from .document_templates import router as document_templates_router
 
 __all__ = [

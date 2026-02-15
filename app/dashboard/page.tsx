@@ -56,7 +56,7 @@ export default function DashboardPage() {
   const personnelIssues = data.personnel?.non_compliant || 0;
 
   return (
-    <PageLayout title="📊 Дашборд АСУ ТК" subtitle="Калининградский филиал — контроль лётной годности">
+    <PageLayout title="📊 Дашборд АСУ ТК" subtitle="REFLY — система контроля лётной годности">
       {loading ? <div className="text-center py-16 text-gray-400">⏳ Загрузка данных...</div> : (
         <div className="space-y-6">
           {/* Critical alerts banner */}

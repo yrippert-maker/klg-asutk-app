@@ -37,9 +37,9 @@ def _serialize_aircraft(a: Aircraft, db: Session) -> AircraftOut:
         "serial_number": a.serial_number,
         "manufacture_date": getattr(a, 'manufacture_date', None),
         "first_flight_date": getattr(a, 'first_flight_date', None),
-        "total_time": float(a.total_time) if a.total_time is not None else None,
+        "total_time": float(a.total_time) if getattr(a, 'total_time', None) is not None else None,
         "total_cycles": getattr(a, 'total_cycles', None),
-        "current_status": getattr(a, 'current_status', 'in_service') or "in_service",
+        "current_status": getattr(a, 'current_status', None) or getattr(a, 'status', 'in_service') or "in_service",
         "configuration": getattr(a, 'configuration', None),
         "drawing_numbers": getattr(a, 'drawing_numbers', None),
         "work_completion_date": getattr(a, 'work_completion_date', None),
@@ -81,7 +81,7 @@ def list_aircraft(
     """List aircraft with pagination. Returns {items, total, page, per_page, pages}."""
     query = _base_query(db, user)
     if q:
-        query = query.filter(or_(Aircraft.registration_number.ilike(f"%{q}%"), Aircraft.drawing_numbers.ilike(f"%{q}%")))
+        query = query.filter(Aircraft.registration_number.ilike(f"%{q}%"))
     query = query.order_by(Aircraft.registration_number)
     total = query.count()
     items_raw = query.offset((page - 1) * per_page).limit(per_page).all()
