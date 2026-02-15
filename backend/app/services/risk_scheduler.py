@@ -53,14 +53,15 @@ def get_last_scan_time() -> datetime | None:
     return _last_scan
 
 
-def setup_scheduler(app):
-    """Setup background scheduler. Call from main.py startup."""
+def setup_scheduler(app=None):
+    """Setup background scheduler. Без app — заглушка (logger.info). С app — запуск APScheduler."""
+    if app is None:
+        logger.info("Risk scheduler: stub — планировщик не сконфигурирован (вызовите setup_scheduler(app) при старте).")
+        return
     try:
         from apscheduler.schedulers.background import BackgroundScheduler
         scheduler = BackgroundScheduler()
-        # Run risk scan every 6 hours
-        scheduler.add_job(run_scheduled_scan, 'interval', hours=6, id='risk_scan',
-                          next_run_time=None)  # Don't run immediately
+        scheduler.add_job(run_scheduled_scan, 'interval', hours=6, id='risk_scan', next_run_time=None)
         scheduler.start()
         logger.info("Risk scanner scheduler started (interval: 6h)")
 

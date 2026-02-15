@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.db.session import engine
 from app.db.base import Base
+from app.services.risk_scheduler import setup_scheduler
 from app.api.routes import (
     health_router,
     stats_router,
@@ -39,10 +40,10 @@ async def lifespan(app: FastAPI):
     """Startup / shutdown events."""
     # Create tables if they don't exist (dev only; production uses Alembic)
     Base.metadata.create_all(bind=engine)
+    # Планировщик рисков: заглушка без app; с app — см. setup_scheduler(app) при необходимости
+    setup_scheduler()
     yield
 
-
-from app.services.risk_scheduler import setup_scheduler
 
 from app.middleware.request_logger import RequestLoggerMiddleware
 

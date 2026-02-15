@@ -29,11 +29,14 @@ class EmailService:
         self.from_addr = from_addr
         self._enabled = bool(smtp_host)
 
-    def send(self, msg: EmailMessage) -> bool:
-        """Send email. Returns True if sent/logged successfully."""
+    def send(self, to_or_msg, subject: str | None = None, body: str | None = None) -> bool:
+        """Send email. Сигнатуры: send(EmailMessage) или send(to, subject, body). Returns True if sent/logged."""
+        if isinstance(to_or_msg, EmailMessage):
+            msg = to_or_msg
+        else:
+            msg = EmailMessage(to=str(to_or_msg), subject=subject or "", body=body or "")
         if not self._enabled:
-            logger.info(f"[EMAIL STUB] To: {msg.to} | Subject: {msg.subject}")
-            logger.debug(f"[EMAIL STUB] Body: {msg.body[:200]}...")
+            logger.info("[EMAIL STUB] To: %s | Subject: %s", msg.to, msg.subject)
             return True
 
         try:
