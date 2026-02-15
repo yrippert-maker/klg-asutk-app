@@ -47,6 +47,18 @@ class ChecklistTemplateOut(BaseModel):
         from_attributes = True
 
 
+class ChecklistTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    domain: Optional[str] = None
+
+
+class ChecklistItemUpdate(BaseModel):
+    code: Optional[str] = None
+    text: Optional[str] = None
+    sort_order: Optional[int] = None
+
+
 # --- Audit ---
 class AuditCreate(BaseModel):
     template_id: str

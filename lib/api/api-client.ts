@@ -191,6 +191,14 @@ export const checklistsApi = {
   getTemplate: (id: string) => apiFetch(`/checklists/templates/${id}`),
   createTemplate: (data: any) => apiFetch('/checklists/templates', { method: 'POST', body: JSON.stringify(data) }),
   generate: (source: string, name: string, items?: any[]) => apiFetch(`/checklists/generate?source=${source}&name=${name}`, { method: 'POST', body: items ? JSON.stringify(items) : undefined }),
+  updateTemplate: (id: string, data: any) =>
+    apiFetch(`/checklists/templates/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  addItem: (templateId: string, data: any) =>
+    apiFetch(`/checklists/templates/${templateId}/items`, { method: 'POST', body: JSON.stringify(data) }),
+  updateItem: (itemId: string, data: any) =>
+    apiFetch(`/checklists/items/${itemId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteItem: (itemId: string) =>
+    apiFetch(`/checklists/items/${itemId}`, { method: 'DELETE' }),
 };
 
 // Notifications

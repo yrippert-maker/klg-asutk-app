@@ -7,7 +7,14 @@ from app.api.deps import get_current_user, require_roles
 from app.api.helpers import audit, paginate_query
 from app.api.deps import get_db
 from app.models import ChecklistTemplate, ChecklistItem
-from app.schemas.audit import ChecklistTemplateCreate, ChecklistTemplateOut, ChecklistItemCreate, ChecklistItemOut
+from app.schemas.audit import (
+    ChecklistTemplateCreate,
+    ChecklistTemplateOut,
+    ChecklistTemplateUpdate,
+    ChecklistItemCreate,
+    ChecklistItemOut,
+    ChecklistItemUpdate,
+)
 
 router = APIRouter(tags=["checklists"])
 
@@ -73,6 +80,93 @@ def get_template(template_id: str, db: Session = Depends(get_db), user=Depends(g
     t = db.query(ChecklistTemplate).filter(ChecklistTemplate.id == template_id).first()
     if not t: raise HTTPException(404, "Not found")
     return _template_with_items(t, db)
+
+
+@router.patch("/checklists/templates/{template_id}", response_model=ChecklistTemplateOut,
+              dependencies=[Depends(require_roles("admin", "authority_inspector"))])
+def update_template(
+    template_id: str,
+    payload: ChecklistTemplateUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    t = db.query(ChecklistTemplate).filter(ChecklistTemplate.id == template_id).first()
+    if not t:
+        raise HTTPException(404, "Template not found")
+    if payload.name is not None:
+        t.name = payload.name
+    if payload.description is not None:
+        t.description = payload.description
+    if payload.domain is not None:
+        t.domain = payload.domain
+    audit(db, user, "update", "checklist_template", entity_id=template_id)
+    db.commit()
+    db.refresh(t)
+    return _template_with_items(t, db)
+
+
+@router.patch("/checklists/items/{item_id}", response_model=ChecklistItemOut,
+              dependencies=[Depends(require_roles("admin", "authority_inspector"))])
+def update_item(
+    item_id: str,
+    payload: ChecklistItemUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    item = db.query(ChecklistItem).filter(ChecklistItem.id == item_id).first()
+    if not item:
+        raise HTTPException(404, "Item not found")
+    if payload.code is not None:
+        item.code = payload.code
+    if payload.text is not None:
+        item.text = payload.text
+    if payload.sort_order is not None:
+        item.sort_order = payload.sort_order
+    audit(db, user, "update", "checklist_item", entity_id=item_id)
+    db.commit()
+    db.refresh(item)
+    return ChecklistItemOut.model_validate(item)
+
+
+@router.post("/checklists/templates/{template_id}/items", response_model=ChecklistItemOut, status_code=201,
+             dependencies=[Depends(require_roles("admin", "authority_inspector"))])
+def add_item(
+    template_id: str,
+    payload: ChecklistItemCreate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    t = db.query(ChecklistTemplate).filter(ChecklistTemplate.id == template_id).first()
+    if not t:
+        raise HTTPException(404, "Template not found")
+    max_order = db.query(ChecklistItem).filter(ChecklistItem.template_id == template_id).count()
+    item = ChecklistItem(
+        template_id=template_id,
+        code=payload.code,
+        text=payload.text,
+        domain=payload.domain,
+        sort_order=payload.sort_order if payload.sort_order else (max_order + 1),
+    )
+    db.add(item)
+    audit(db, user, "create", "checklist_item")
+    db.commit()
+    db.refresh(item)
+    return ChecklistItemOut.model_validate(item)
+
+
+@router.delete("/checklists/items/{item_id}", status_code=204,
+               dependencies=[Depends(require_roles("admin", "authority_inspector"))])
+def delete_item(
+    item_id: str,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    item = db.query(ChecklistItem).filter(ChecklistItem.id == item_id).first()
+    if not item:
+        raise HTTPException(404, "Item not found")
+    audit(db, user, "delete", "checklist_item", entity_id=item_id)
+    db.delete(item)
+    db.commit()
 
 
 @router.post("/checklists/generate-from-csv", response_model=ChecklistTemplateOut,

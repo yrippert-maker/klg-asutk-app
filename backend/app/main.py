@@ -40,6 +40,12 @@ async def lifespan(app: FastAPI):
     """Startup / shutdown events."""
     # Create tables if they don't exist (dev only; production uses Alembic)
     Base.metadata.create_all(bind=engine)
+    try:
+        from app.demo.seed_checklists import seed_checklists
+        seed_checklists()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Checklist seed skipped: %s", e)
     # Планировщик рисков (передаём app для shutdown hook)
     setup_scheduler(app)
     yield
