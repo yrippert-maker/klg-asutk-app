@@ -1,6 +1,6 @@
 # КЛГ АСУ ТК v27 — Full Stack
 # docker compose up -d
-version: '3.8'
+# (version удалён — deprecated в Docker Compose v2+)
 
 services:
   # ─── Database ───────────────────────────────────

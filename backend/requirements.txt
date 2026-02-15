@@ -28,6 +28,9 @@ structlog==24.4.0
 # Monitoring
 prometheus-client==0.21.0
 
+# Scheduler (risk scan jobs)
+APScheduler>=3.10
+
 # Utils
 python-dotenv==1.0.1
 

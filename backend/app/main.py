@@ -40,8 +40,8 @@ async def lifespan(app: FastAPI):
     """Startup / shutdown events."""
     # Create tables if they don't exist (dev only; production uses Alembic)
     Base.metadata.create_all(bind=engine)
-    # Планировщик рисков: заглушка без app; с app — см. setup_scheduler(app) при необходимости
-    setup_scheduler()
+    # Планировщик рисков (передаём app для shutdown hook)
+    setup_scheduler(app)
     yield
 
 
@@ -117,6 +117,13 @@ app.add_middleware(
 app.add_middleware(RequestLoggerMiddleware)
 
 # ---------------------------------------------------------------------------
+# Global authentication dependency (должно быть определено до первого include_router с dependencies=AUTH_DEPENDENCY)
+# ---------------------------------------------------------------------------
+from fastapi import Depends
+from app.api.deps import get_current_user
+AUTH_DEPENDENCY = [Depends(get_current_user)]
+
+# ---------------------------------------------------------------------------
 # Prometheus metrics
 # ---------------------------------------------------------------------------
 from app.api.routes.fgis_revs import router as fgis_revs_router
@@ -175,13 +182,6 @@ app.add_exception_handler(IntegrityError, integrity_error_handler)
 app.add_exception_handler(SQLAlchemyError, sqlalchemy_error_handler)
 app.add_exception_handler(Exception, general_exception_handler)
 
-
-# ---------------------------------------------------------------------------
-# Global authentication dependency for all API routes
-from app.api.deps import get_current_user
-from fastapi import Depends
-
-AUTH_DEPENDENCY = [Depends(get_current_user)]
 
 # Routers — все API v1
 # ---------------------------------------------------------------------------
