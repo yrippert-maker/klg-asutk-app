@@ -34,7 +34,13 @@ class Settings(BaseSettings):
     OIDC_AUDIENCE: str = "account"
     ENABLE_DEV_AUTH: bool = False  # ONLY for development
     DEV_TOKEN: str = "dev"
-    
+    # JWT (dev mode — HS256 токены)
+    JWT_SECRET: str = ""
+    JWT_ALG: str = "HS256"
+    allow_hs256_dev_tokens: bool = False
+    # Secret key (подпись, сессии)
+    SECRET_KEY: str = "change-me-in-production"
+
     # Rate limiting
     RATE_LIMIT_PER_MINUTE: int = 60
     
@@ -48,7 +54,13 @@ class Settings(BaseSettings):
     # Inbox (COD-004)
     INBOX_DATA_DIR: str = "./data"
     INBOX_UPLOAD_MAX_MB: int = 50
-    
+    # Хранилище файлов (attachments, storage.py)
+    storage_dir: str = "./data/storage"
+
+    # П-ИВ интеграция
+    piv_base_url: str = "http://localhost:9090/piv"
+    piv_timeout_s: float = 10.0
+
     # Multi-tenancy
     ENABLE_RLS: bool = True
     
