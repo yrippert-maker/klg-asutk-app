@@ -18,8 +18,8 @@ NEXT_PUBLIC_API_URL=https://api.example.com/api
 NEXT_PUBLIC_USE_MOCK_DATA=false
 NEXT_PUBLIC_USE_REGISTRY_DATA=true
 
-# OpenAI
-OPENAI_API_KEY=your-production-api-key
+# AI (Anthropic Claude)
+ANTHROPIC_API_KEY=your-production-api-key
 
 # Логирование
 LOG_LEVEL=info

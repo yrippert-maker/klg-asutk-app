@@ -256,7 +256,7 @@ const enriched = await autoEnrichAircraft(aircraft);
 ### Переменные окружения
 
 ```env
-OPENAI_API_KEY=your-api-key
+ANTHROPIC_API_KEY=your-api-key
 ```
 
 ### Установка pgvector
@@ -295,7 +295,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 ┌─────────────────┐
 │ Knowledge       │
 │ Extraction      │
-│ (OpenAI GPT-4)  │
+│ (Anthropic Claude)  │
 └────────┬────────┘
          │
          ▼

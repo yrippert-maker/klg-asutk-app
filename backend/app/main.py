@@ -32,6 +32,7 @@ from app.api.routes import (
     inbox_router,
     tasks_router,
     audit_router,
+    ai_router,
 )
 
 
@@ -211,6 +212,7 @@ app.include_router(checklist_audits_router, prefix=PREFIX, dependencies=AUTH_DEP
 app.include_router(inbox_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
 app.include_router(tasks_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
 app.include_router(audit_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(ai_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
 
 # WebSocket (no prefix — direct path)
 from app.api.routes.ws_notifications import router as ws_router

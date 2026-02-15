@@ -48,11 +48,11 @@ spec:
             configMapKeyRef:
               name: klg-config
               key: redis-host
-        - name: OPENAI_API_KEY
+        - name: ANTHROPIC_API_KEY
           valueFrom:
             secretKeyRef:
               name: klg-secrets
-              key: openai-api-key
+              key: anthropic-api-key
         resources:
           requests:
             memory: "512Mi"
@@ -127,4 +127,4 @@ stringData:
   db-name: "klg_db"
   db-user: "postgres"
   db-password: ""  # SET VIA CI/CD PIPELINE
-  openai-api-key: ""  # SET VIA CI/CD PIPELINE
+  anthropic-api-key: ""  # SET VIA CI/CD PIPELINE (Anthropic Claude)

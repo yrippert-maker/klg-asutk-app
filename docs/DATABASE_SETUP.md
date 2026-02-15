@@ -172,8 +172,8 @@ REDIS_DB=0
 # Включение Redis (опционально)
 REDIS_ENABLED=true
 
-# OpenAI API (для ИИ агента)
-OPENAI_API_KEY=your_openai_api_key
+# AI (Anthropic Claude — для ИИ агента)
+ANTHROPIC_API_KEY=your_anthropic_api_key
 
 # Sentry (опционально, для мониторинга ошибок)
 NEXT_PUBLIC_SENTRY_DSN=

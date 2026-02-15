@@ -15,13 +15,13 @@
 ```typescript
 import { circuitBreakers } from '@/lib/resilience/circuit-breaker';
 
-const result = await circuitBreakers.openai.execute(async () => {
-  return await openai.chat.completions.create(...);
+const result = await circuitBreakers.ai.execute(async () => {
+  return await aiApi.chat(prompt);
 });
 ```
 
 **Глобальные circuit breakers:**
-- `openai` - для OpenAI API
+- `ai` - для Anthropic Claude API
 - `database` - для PostgreSQL
 - `redis` - для Redis
 - `externalApi` - для внешних API

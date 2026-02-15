@@ -179,8 +179,8 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 NEXT_PUBLIC_USE_MOCK_DATA=false
 NEXT_PUBLIC_USE_REGISTRY_DATA=true
 
-# OpenAI
-OPENAI_API_KEY=your-api-key
+# AI (Anthropic Claude)
+ANTHROPIC_API_KEY=your-api-key
 
 # Логирование
 LOG_LEVEL=info

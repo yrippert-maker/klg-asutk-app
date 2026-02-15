@@ -63,6 +63,10 @@ class Settings(BaseSettings):
 
     # Multi-tenancy
     ENABLE_RLS: bool = True
+
+    # AI (Anthropic Claude)
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-sonnet-4-20250514"
     
     @property
     def database_url(self) -> str:

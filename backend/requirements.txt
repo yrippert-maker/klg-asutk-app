@@ -31,6 +31,9 @@ prometheus-client==0.21.0
 # Scheduler (risk scan jobs)
 APScheduler>=3.10
 
+# AI (Anthropic Claude — единственный AI-провайдер)
+anthropic>=0.42.0
+
 # Utils
 python-dotenv==1.0.1
 

@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         async () => {
           return await withTimeout(
             detectIntent(query),
-            TIMEOUTS.OPENAI_API / 2,
+            TIMEOUTS.AI_API / 2,
             'Intent detection timeout'
           );
         }
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
               mode: mode === 'autonomous' ? 'autonomous' : 'copilot',
               context,
             }),
-            TIMEOUTS.OPENAI_API,
+            TIMEOUTS.AI_API,
             'Natural language query processing timeout'
           );
         },

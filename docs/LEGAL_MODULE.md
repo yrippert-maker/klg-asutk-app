@@ -88,11 +88,10 @@
 
 В `.env` или переменных окружения:
 
-- `OPENAI_API_KEY` — ключ OpenAI (или аналог)
-- `OPENAI_BASE_URL` — базовый URL для локальных OpenAI-совместимых моделей
-- `LEGAL_LLM_MODEL` — модель (по умолчанию `gpt-4o-mini`)
+- `ANTHROPIC_API_KEY` — ключ Anthropic Claude API
+- `ANTHROPIC_MODEL` — модель (по умолчанию `claude-sonnet-4-20250514`)
 
-В `app.core.config` добавлены: `openai_api_key`, `openai_base_url`, `legal_llm_model`.
+В `app.core.config` добавлены: `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`.
 
 Если LLM недоступен (нет ключа или ошибка), агенты работают в режиме заглушек (эвристики, пустые списки).
 
@@ -106,4 +105,4 @@ cd backend && python -m app.db.seed_legal
 
 ## Зависимости
 
-- `openai>=1.0.0` — для вызова LLM (OpenAI-совместимый API).
+- `anthropic>=0.42.0` — для вызова LLM (Anthropic Claude API).

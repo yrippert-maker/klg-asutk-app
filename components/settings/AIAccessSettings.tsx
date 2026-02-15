@@ -20,8 +20,9 @@ export default function AIAccessSettings({ onSave }: Props) {
       </FormField>
       <FormField label="Модель">
         <select value={model} onChange={e => setModel(e.target.value)} className="input-field" disabled={!enabled}>
-          <option value="claude-3-sonnet">Claude 3 Sonnet</option><option value="claude-3-opus">Claude 3 Opus</option>
-          <option value="gpt-4">GPT-4</option><option value="local">Локальная модель</option>
+          <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+          <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+          <option value="claude-3-opus">Claude 3 Opus</option>
         </select>
       </FormField>
       <FormField label="Макс. токенов">

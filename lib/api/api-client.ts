@@ -247,3 +247,22 @@ export const attachmentsApi = {
 export const healthApi = {
   check: () => apiFetch('/health'),
 };
+
+// AI Assistant (Anthropic Claude via backend)
+export const aiApi = {
+  chat: (prompt: string, context?: string) =>
+    apiFetch<{ result: string; model: string; provider: string }>('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ prompt, task: 'chat', context }),
+    }),
+  summarize: (text: string) =>
+    apiFetch<{ result: string }>('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ prompt: text, task: 'summarize' }),
+    }),
+  extractRisks: (text: string) =>
+    apiFetch<{ result: string }>('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ prompt: text, task: 'extract_risks' }),
+    }),
+};

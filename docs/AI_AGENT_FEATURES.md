@@ -258,7 +258,7 @@
 ### Библиотеки
 
 - `csv-parse` - для парсинга CSV файлов
-- `openai` - для работы с OpenAI API
+- `ai` - для работы с Anthropic Claude API
 - В будущем: `pdf-parse`, `xlsx`, `tesseract.js` для полной поддержки всех форматов
 
 ### Файлы
