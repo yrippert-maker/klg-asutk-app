@@ -30,6 +30,7 @@ const menuItems: MenuItem[] = [
   { name: 'Дефекты', path: '/defects', icon: '🛠️' },
   { name: 'Модификации', path: '/modifications', icon: '⚙️' },
   { name: 'Документы', path: '/documents', icon: '📄' },
+  { name: 'Шаблоны', path: '/templates', icon: '📋' },
   { name: 'Inbox', path: '/inbox', icon: '📥' },
   { name: 'Нормативные документы', path: '/regulations', icon: '📚' },
   { name: 'Мониторинг', path: '/monitoring', icon: '📈', roles: ['admin', 'authority_inspector'] },

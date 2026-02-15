@@ -243,6 +243,15 @@ export const attachmentsApi = {
   downloadUrl: (id: string) => `${API_BASE}/attachments/${id}/download`,
 };
 
+// Document Templates (библиотека шаблонов REFLY)
+export const documentTemplatesApi = {
+  list: (params?: QueryParams) =>
+    apiFetch<PaginatedResponse<any>>(`/document-templates${buildQuery(params)}`),
+  get: (id: string) => apiFetch(`/document-templates/${id}`),
+  update: (id: string, data: any) =>
+    apiFetch(`/document-templates/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+};
+
 // Health
 export const healthApi = {
   check: () => apiFetch('/health'),

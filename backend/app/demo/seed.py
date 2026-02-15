@@ -224,6 +224,8 @@ def seed():
 
         from app.demo.seed_checklists import seed_checklists
         seed_checklists()
+        from app.demo.seed_document_templates import seed_document_templates
+        seed_document_templates()
 
     except Exception as e:
         db.rollback()

@@ -33,6 +33,7 @@ from app.api.routes import (
     tasks_router,
     audit_router,
     ai_router,
+    document_templates_router,
 )
 
 
@@ -47,6 +48,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning("Checklist seed skipped: %s", e)
+    try:
+        from app.demo.seed_document_templates import seed_document_templates
+        seed_document_templates()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Document templates seed skipped: %s", e)
     # Планировщик рисков (передаём app для shutdown hook)
     setup_scheduler(app)
     yield
@@ -213,6 +220,7 @@ app.include_router(inbox_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
 app.include_router(tasks_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
 app.include_router(audit_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
 app.include_router(ai_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
+app.include_router(document_templates_router, prefix=PREFIX, dependencies=AUTH_DEPENDENCY)
 
 # WebSocket (no prefix — direct path)
 from app.api.routes.ws_notifications import router as ws_router

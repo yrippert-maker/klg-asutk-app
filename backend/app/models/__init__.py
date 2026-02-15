@@ -17,6 +17,7 @@ from app.models.audit_log import AuditLog
 from app.models.personnel_plg import PLGSpecialist, PLGAttestation, PLGQualification
 from app.models.airworthiness_core import ADDirective, ServiceBulletin, LifeLimit, MaintenanceProgram, AircraftComponent
 from app.models.work_orders import WorkOrder
+from app.models.document_template import DocumentTemplate
 from app.models.legal import (
     DocumentType,
     Jurisdiction,
@@ -67,4 +68,5 @@ __all__ = [
     "MaintenanceProgram",
     "AircraftComponent",
     "WorkOrder",
+    "DocumentTemplate",
 ]

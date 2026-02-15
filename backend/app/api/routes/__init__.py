@@ -17,6 +17,7 @@ from .inbox import router as inbox_router
 from .tasks import router as tasks_router
 from .audit import router as audit_router
 from .ai import router as ai_router
+from .document_templates import router as document_templates_router
 
 __all__ = [
     "health_router",
@@ -38,5 +39,6 @@ __all__ = [
     "tasks_router",
     "audit_router",
     "ai_router",
+    "document_templates_router",
 ]
 
