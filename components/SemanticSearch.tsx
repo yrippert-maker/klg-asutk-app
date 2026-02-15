@@ -31,21 +31,9 @@ export default function SemanticSearch({
 
     setLoading(true);
     try {
-      const response = await fetch('/api/knowledge/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query,
-          type: type === 'all' ? undefined : type,
-          limit: 10,
-          threshold: 0.7,
-        }),
-      });
-
-      const data = await response.json();
-      setResults(data.results || []);
-    } catch (error) {
-      // Ошибка уже обработана в API
+      // Модуль нормативной базы (knowledge) вынесен в отдельный сервис
+      setResults([]);
+    } catch {
       setResults([]);
     } finally {
       setLoading(false);

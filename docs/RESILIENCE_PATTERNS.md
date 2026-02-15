@@ -44,7 +44,7 @@ const result = await bulkheads.ai.execute(async () => {
 **Глобальные bulkheads:**
 - `ai` - 5 одновременных запросов
 - `database` - 20 одновременных запросов
-- `knowledgeGraph` - 2 построения графа одновременно
+- Модуль нормативной базы (knowledge) вынесен в отдельный сервис; лимит `knowledgeGraph` не используется в этом репозитории.
 - `fileProcessing` - 3 файла одновременно
 
 ### 3. Retry с Exponential Backoff

@@ -42,14 +42,7 @@
 - **Рёбра**: Связи между сущностями
 - **Embeddings**: Векторные представления для семантического поиска
 
-**Пример:**
-```typescript
-import { buildKnowledgeGraph } from '@/lib/ai/knowledge-graph';
-
-const graph = await buildKnowledgeGraph();
-// graph.nodes - узлы графа
-// graph.edges - связи между узлами
-```
+**Пример:** Модуль нормативной базы (knowledge) вынесен в отдельный сервис; граф знаний доступен через внешний API.
 
 ### 2. LLM Reasoning
 
@@ -159,11 +152,11 @@ const result = await agent.execute(plan);
 }
 ```
 
-#### GET `/api/knowledge/graph`
+#### Модуль knowledge
 
-Получение Knowledge Graph.
+Модуль нормативной базы (knowledge) вынесен в отдельный сервис. Эндпоинт `GET /api/knowledge/graph` в данном репозитории не реализован.
 
-**Query Parameters:**
+**Query Parameters (внешний сервис):**
 - `query` - поисковый запрос (опционально)
 - `format` - формат ответа: `json` или `visualization`
 

@@ -47,30 +47,11 @@ export default function KnowledgePanel({
   const loadKnowledge = async () => {
     setLoading(true);
     try {
-      // Загружаем инсайты
-      const insightsRes = await fetch('/api/knowledge/insights', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          data: [{ id: entityId, type: entityType }],
-          context: `${entityType} ${entityId}`,
-        }),
-      });
-      const insightsData = await insightsRes.json();
-      setInsights(insightsData.insights || []);
-
-      // Загружаем рекомендации
-      const recRes = await fetch('/api/knowledge/recommendations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          [String(entityType)]: [{ id: entityId }],
-        }),
-      });
-      const recData = await recRes.json();
-      setRecommendations(recData.recommendations || []);
+      // Модуль нормативной базы (knowledge) вынесен в отдельный сервис
+      setInsights([]);
+      setRecommendations([]);
     } catch (error) {
-      console.error('Failed to load knowledge:', error);
+      console.error('Knowledge module in separate service', error);
     } finally {
       setLoading(false);
     }

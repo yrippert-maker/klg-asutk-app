@@ -20,7 +20,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const MANIFEST_PATH = path.join(__dirname, '../index/manifest.json');
-const KNOWLEDGE_DIR = path.join(__dirname, '../knowledge');
+// Модуль knowledge вынесен в отдельный сервис — проверка файлов в knowledge/ отключена
 
 // Обязательные поля документа
 const REQUIRED_FIELDS = ['id', 'title', 'path', 'type', 'domain', 'version', 'status'];
@@ -154,67 +154,11 @@ function validateManifest() {
     }
   });
 
-  // Проверка: все файлы из knowledge/ должны быть в manifest
-  checkKnowledgeFilesInManifest(manifest, documentPaths);
-
   printResults();
 
   if (errors.length > 0) {
     process.exit(1);
   }
-}
-
-function getAllKnowledgeFiles() {
-  const files = [];
-  
-  if (!fs.existsSync(KNOWLEDGE_DIR)) {
-    return files;
-  }
-  
-  ['reglaments', 'guides', 'samples'].forEach(dir => {
-    const dirPath = path.join(KNOWLEDGE_DIR, dir);
-    if (!fs.existsSync(dirPath)) return;
-    
-    const dirFiles = fs.readdirSync(dirPath)
-      .filter(file => {
-        const filePath = path.join(dirPath, file);
-        try {
-          const stat = fs.statSync(filePath);
-          return stat.isFile() && file !== '.DS_Store' && file !== 'README.md';
-        } catch (e) {
-          return false;
-        }
-      })
-      .map(file => {
-        const relativePath = `knowledge/${dir}/${file}`;
-        return {
-          fileName: file,
-          relativePath: relativePath,
-          fullPath: path.join(dirPath, file)
-        };
-      });
-    
-    files.push(...dirFiles);
-  });
-  
-  return files;
-}
-
-function checkKnowledgeFilesInManifest(manifest, manifestPaths) {
-  console.log('🔍 Проверка соответствия файлов knowledge/ и manifest...\n');
-  
-  const knowledgeFiles = getAllKnowledgeFiles();
-  const manifestPathsSet = new Set(manifestPaths);
-  
-  // Проверяем, что каждый файл из knowledge/ есть в manifest
-  knowledgeFiles.forEach(file => {
-    if (!manifestPathsSet.has(file.relativePath)) {
-      errors.push(`Файл из knowledge/ отсутствует в manifest: ${file.relativePath}`);
-    }
-  });
-  
-  console.log(`   Проверено файлов в knowledge/: ${knowledgeFiles.length}`);
-  console.log(`   Записей в manifest: ${manifestPaths.size}\n`);
 }
 
 function printResults() {
