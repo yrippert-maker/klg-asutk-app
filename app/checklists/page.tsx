@@ -18,7 +18,7 @@ export default function ChecklistsPage() {
   const gen = async (src: string) => { const n = prompt('Название:'); if (!n) return; await checklistsApi.generate(src, n); mutate(); };
 
   return (
-    <PageLayout title="Чек-листы" subtitle={isLoading ? 'Загрузка...' : `Шаблонов: ${data?.total || 0}`}
+    <PageLayout title="Чек-листы Part-M RU" subtitle={isLoading ? 'Загрузка...' : (data?.total ? `Гармонизировано с ICAO Annex 8 · EASA Part-M · FAA 14 CFR Part 43/91 · Шаблонов: ${data.total}` : 'Гармонизировано с ICAO Annex 8 · EASA Part-M · FAA 14 CFR Part 43/91')}
       actions={<RequireRole roles={['admin', 'authority_inspector']}>
         <button onClick={() => gen('fap_m_inspection')} className="btn-primary">+ ФАП-М</button>
         <button onClick={() => gen('custom')} className="btn-primary bg-blue-500 hover:bg-blue-600">+ Пользовательский</button>
@@ -26,13 +26,14 @@ export default function ChecklistsPage() {
       <FilterBar value={domain} onChange={setDomain} className="mb-4"
         options={[
           { value: undefined, label: 'Все' },
-          { value: 'ФАП-148', label: '🇷🇺 ФАП-148' },
-          { value: 'ФАП-145', label: '🇷🇺 ФАП-145' },
-          { value: 'ФАП-147', label: '🇷🇺 ФАП-147' },
-          { value: 'ICAO', label: '🌐 ИКАО' },
-          { value: 'EASA', label: '🇪🇺 EASA' },
-          { value: 'FAA', label: '🇺🇸 FAA' },
-          { value: 'CSV', label: '📄 CSV' },
+          { value: 'continuing_airworthiness', label: 'M.A.301 ПЛГ' },
+          { value: 'maintenance_program', label: 'M.A.302 Программа ТО' },
+          { value: 'airworthiness_directives', label: 'M.A.303 ДЛГ/AD' },
+          { value: 'records', label: 'M.A.305 Учёт ПЛГ' },
+          { value: 'maintenance_data', label: 'M.A.401 Данные ТО' },
+          { value: 'components', label: 'M.A.501 Компоненты' },
+          { value: 'camo_obligations', label: 'M.A.703 CAMO' },
+          { value: 'airworthiness_review', label: 'M.A.901 Проверка ЛГ' },
         ]} />
       {!isLoading && templates.length > 0 ? (
         <div className="flex flex-col gap-3">
