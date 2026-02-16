@@ -7,7 +7,7 @@ export default function DocumentsPage() {
     { title: 'Входящие документы', desc: 'PDF и DOCX файлы', href: '/inbox', icon: '📥' },
     { title: 'Вложения аудитов', desc: 'Фото и протоколы', href: '/audits', icon: '🔍' },
     { title: 'Сертификаты', desc: 'Сертификаты ЛГ', href: '/airworthiness', icon: '📜' },
-    { title: 'Нормативные документы', desc: 'ФАП, ICAO, EASA', href: '/regulations', icon: '📚' },
+    { title: 'Нормативные документы', desc: 'Part-M RU · ФАП', href: '/regulations', icon: '📚' },
     { title: 'Чек-листы', desc: 'Шаблоны проверок', href: '/checklists', icon: '✅' },
     { title: 'Шаблоны документов', desc: 'Заявки, акты, письма, формы', href: '/templates', icon: '📋' },
   ];

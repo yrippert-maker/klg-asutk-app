@@ -36,7 +36,6 @@ import {
   XCircle,
   MessageSquareWarning,
   Clock,
-  ClockAlert,
   BadgeCheck,
   PlaneOff,
   CircleDot,
@@ -139,6 +138,66 @@ export const ReflyRegulator = (props: ReflyIconProps) => (
   </svg>
 );
 
+/** Aircraft (ВС) */
+export const ReflyAircraft = (props: ReflyIconProps) => (
+  <svg {...base(props)}>
+    <path d="M12 3v10" />
+    <path d="M4.5 11.5L12 14l7.5-2.5" />
+    <path d="M12 13.5v7.5" />
+    <path d="M9 22l3-1.6L15 22" />
+    <path d="M6 8.2c2.2-1.3 4.5-2.5 7.2-3.7" />
+  </svg>
+);
+
+/** Audits: shield + magnifier */
+export const ReflyAudits = (props: ReflyIconProps) => (
+  <svg {...base(props)}>
+    <path d="M12 2l7 4v6c0 5-3 9-7 10c-4-1-7-5-7-10V6l7-4z" />
+    <circle cx="10" cy="13.5" r="2.5" />
+    <path d="M11.8 15.3L13.8 17.3" />
+  </svg>
+);
+
+/** Documents */
+export const ReflyDocuments = (props: ReflyIconProps) => (
+  <svg {...base(props)}>
+    <path d="M7 3h7l3 3v15H7V3z" />
+    <path d="M14 3v4h4" />
+    <path d="M9 11h6" />
+    <path d="M9 14h6" />
+    <path d="M18 12l2 1v2c0 1.5-1 2.8-2 3c-1-.2-2-1.5-2-3v-2l2-1z" />
+  </svg>
+);
+
+/** Defects */
+export const ReflyDefects = (props: ReflyIconProps) => (
+  <svg {...base(props)}>
+    <path d="M12 2l7 4v6c0 5-3 9-7 10c-4-1-7-5-7-10V6l7-4z" />
+    <path d="M12 10.5c1.7 0 3 1.3 3 3v1c0 1.7-1.3 3-3 3s-3-1.3-3-3v-1c0-1.7 1.3-3 3-3z" />
+    <path d="M10 10l-1-1" />
+    <path d="M14 10l1-1" />
+    <path d="M9.5 13H8" />
+    <path d="M16 13h-1.5" />
+  </svg>
+);
+
+/** Risks */
+export const ReflyRisks = (props: ReflyIconProps) => (
+  <svg {...base(props)}>
+    <path d="M12 2l7 4v6c0 5-3 9-7 10c-4-1-7-5-7-10V6l7-4z" />
+    <path d="M12 9v5" />
+    <path d="M12 17h.01" />
+  </svg>
+);
+
+/** Maintenance */
+export const ReflyMaintenance = (props: ReflyIconProps) => (
+  <svg {...base(props)}>
+    <path d="M14.5 6.5a3 3 0 0 0-4 3.5l-4.8 4.8a1.5 1.5 0 0 0 2.1 2.1l4.8-4.8a3 3 0 0 0 3.5-4l-2 2l-2-2l2-2z" />
+    <path d="M19 13l2 1v2c0 1.5-1 2.8-2 3c-1-.2-2-1.5-2-3v-2l2-1z" />
+  </svg>
+);
+
 /* -----------------------
    ICON MAPS
 ----------------------- */
@@ -175,19 +234,19 @@ export type SidebarKey =
 export const sidebarIcons: Record<SidebarKey, LucideIcon | React.FC<ReflyIconProps>> = {
   dashboard: LayoutDashboard,
   organizations: Building2,
-  aircraft: Plane,
+  aircraft: ReflyAircraft,
   applications: ClipboardList,
   checklists: CheckSquare,
-  audits: SearchCheck,
-  risks: AlertTriangle,
+  audits: ReflyAudits,
+  risks: ReflyRisks,
   users: Users,
   airworthiness: ReflyAirworthiness,
   calendar: Calendar,
   "airworthiness-core": ReflyContinuedAirworthiness,
-  maintenance: Wrench,
-  defects: Bug,
+  maintenance: ReflyMaintenance,
+  defects: ReflyDefects,
   modifications: GitBranch,
-  documents: FileText,
+  documents: ReflyDocuments,
   inbox: Inbox,
   regulations: BookOpen,
   monitoring: Activity,
@@ -232,7 +291,7 @@ export const statusIcons: Record<StatusKey, LucideIcon | React.FC<ReflyIconProps
   approved: CheckCircle2,
   rejected: XCircle,
   remarks: MessageSquareWarning,
-  expired: ClockAlert,
+  expired: Clock,
   active: BadgeCheck,
   grounded: PlaneOff,
   maintenance: Wrench,

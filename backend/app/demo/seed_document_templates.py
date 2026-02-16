@@ -544,7 +544,15 @@ def _templates_data() -> list[dict]:
 def seed_document_templates():
     db = SessionLocal()
     try:
+        # Удалить шаблоны ICAO / EASA / FAA — оставляем только российские (Part-M RU, ФАП)
+        deleted = db.query(DocumentTemplate).filter(DocumentTemplate.standard.in_(["EASA", "FAA", "ICAO"])).delete(synchronize_session=False)
+        if deleted:
+            logger.info("Removed %s non-Russian document templates (EASA/FAA/ICAO)", deleted)
+        db.commit()
+
         for d in _templates_data():
+            if d.get("standard") in ("EASA", "FAA", "ICAO"):
+                continue
             if db.query(DocumentTemplate).filter(DocumentTemplate.code == d["code"]).first():
                 continue
             db.add(

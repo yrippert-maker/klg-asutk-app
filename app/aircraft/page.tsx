@@ -11,9 +11,15 @@ export default function AircraftPage() {
   const [search, setSearch] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const { data, isLoading, mutate } = useAircraftData({ q: search || undefined, page, limit: 25 });
-  const aircraft = data?.items || (Array.isArray(data) ? data : []);
-  const total = data?.total || aircraft.length;
-  const pages = data?.pages || 1;
+  const aircraft = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
+  const total = data?.total ?? aircraft.length;
+  const pages = data?.pages ?? 1;
+
+  const typeLabel = (a: any) => {
+    const t = a?.aircraft_type;
+    if (!t) return '—';
+    return [t.manufacturer, t.model].filter(Boolean).join(' ') || t.icao_code || '—';
+  };
 
   const handleAdd = async (d: any) => { try { await aircraftApi.create(d); mutate(); setIsAddOpen(false); } catch (e: any) { alert(e.message); } };
   const handleDelete = async (id: string) => { if (!confirm('Удалить ВС?')) return; try { await aircraftApi.delete(id); mutate(); } catch (e: any) { alert(e.message); } };
@@ -31,19 +37,19 @@ export default function AircraftPage() {
           <div className="card overflow-x-auto">
             <table className="w-full">
               <thead><tr className="bg-gray-50">
-                <th className="table-header">Регистрация</th><th className="table-header">Тип</th><th className="table-header">Модель</th>
-                <th className="table-header">Оператор</th><th className="table-header">Налёт (ч)</th><th className="table-header">Статус</th>
+                <th className="table-header">Регистрация</th><th className="table-header">Тип</th><th className="table-header">Оператор</th>
+                <th className="table-header">Серийный №</th><th className="table-header">Налёт (ч)</th><th className="table-header">Статус</th>
                 <th className="table-header">Действия</th>
               </tr></thead>
               <tbody>
                 {aircraft.map((a: any) => (
                   <tr key={a.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="table-cell font-medium text-primary-500">{a.registration_number || a.registrationNumber}</td>
-                    <td className="table-cell">{a.aircraft_type || a.aircraftType}</td>
-                    <td className="table-cell text-gray-500">{a.model || '—'}</td>
-                    <td className="table-cell text-gray-500">{a.operator || a.operator_name || '—'}</td>
-                    <td className="table-cell text-right font-mono">{a.flight_hours || a.flightHours || '—'}</td>
-                    <td className="table-cell"><StatusBadge status={a.status || 'active'} /></td>
+                    <td className="table-cell font-medium text-primary-500">{a.registration_number ?? a.registrationNumber ?? '—'}</td>
+                    <td className="table-cell">{typeLabel(a)}</td>
+                    <td className="table-cell text-gray-500">{a.operator_name ?? a.operator ?? '—'}</td>
+                    <td className="table-cell text-gray-500 font-mono text-sm">{a.serial_number ?? '—'}</td>
+                    <td className="table-cell text-right font-mono">{a.total_time ?? a.flight_hours ?? a.flightHours ?? '—'}</td>
+                    <td className="table-cell"><StatusBadge status={a.status ?? a.current_status ?? 'active'} /></td>
                     <td className="table-cell">
                       <RequireRole roles={['admin', 'authority_inspector', 'operator_manager']}>
                         <button onClick={() => handleDelete(a.id)} className="btn-sm bg-red-100 text-red-600 hover:bg-red-200">Удалить</button>

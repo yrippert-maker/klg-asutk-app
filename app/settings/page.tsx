@@ -2,16 +2,21 @@
 import { useState, useEffect } from 'react';
 import { PageLayout } from '@/components/ui';
 import { apiFetch } from '@/lib/api/api-client';
+import { useAuth } from '@/lib/auth-context';
+
+const ROLE_LABELS: Record<string, string> = { admin: 'Администратор', authority_inspector: 'Инспектор', operator_manager: 'Менеджер оператора', operator_user: 'Оператор', mro_manager: 'Менеджер ТОиР', mro_specialist: 'Специалист ТОиР', mro_user: 'Специалист ТОиР' };
 
 export default function SettingsPage() {
+  const { user } = useAuth();
   const [prefs, setPrefs] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    apiFetch('/notification-preferences').then(setPrefs);
+    apiFetch('/notification-preferences').catch(() => null).then(setPrefs);
   }, []);
 
   const save = async () => {
+    if (!prefs) return;
     setSaving(true);
     await apiFetch('/notification-preferences', { method: 'PUT', body: JSON.stringify(prefs) });
     setSaving(false);
@@ -27,11 +32,49 @@ export default function SettingsPage() {
     </div>
   );
 
-  if (!prefs) return <PageLayout title="⚙️ Настройки"><div className="text-center py-8 text-gray-400">⏳</div></PageLayout>;
-
   return (
-    <PageLayout title="⚙️ Настройки" subtitle="Уведомления и персонализация">
+    <PageLayout title="⚙️ Настройки" subtitle="Профиль, система, уведомления">
       <div className="max-w-lg space-y-6">
+        <section className="card p-4">
+          <h3 className="text-sm font-bold text-gray-600 mb-3">👤 Профиль пользователя</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-gray-500">Имя</span><span className="font-medium">{user?.display_name ?? 'Dev User'}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Email</span><span>{user?.email ?? 'dev@local'}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Роль</span><span>{user?.role ? ROLE_LABELS[user.role] ?? user.role : 'Администратор'}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Организация</span><span>{user?.organization_name ?? '—'}</span></div>
+          </div>
+        </section>
+
+        <section className="card p-4">
+          <h3 className="text-sm font-bold text-gray-600 mb-3">🖥️ Настройки системы</h3>
+          <div className="space-y-2 text-sm text-gray-600">
+            <div className="flex justify-between"><span>Название системы</span><span>REFLY АСУ ТК</span></div>
+            <div className="flex justify-between"><span>Версия</span><span>2.0.0-beta</span></div>
+            <div className="flex justify-between"><span>Нормативная база</span><span>Part-M RU</span></div>
+            <div className="flex justify-between"><span>Язык</span><span>Русский</span></div>
+            <div className="flex justify-between"><span>Часовой пояс</span><span>Europe/Moscow (UTC+3)</span></div>
+          </div>
+        </section>
+
+        <section className="card p-4">
+          <h3 className="text-sm font-bold text-gray-600 mb-3">🔗 Интеграции</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-center"><span>AI-помощник (Claude)</span><span className="text-amber-600">⚠️ Настройка</span></div>
+            <div className="flex justify-between items-center"><span>ФГИС ЕС ОрВД</span><span className="text-gray-500">Не подключено</span></div>
+            <div className="flex justify-between items-center"><span>Keycloak SSO</span><span className="text-green-600">Подключено (dev)</span></div>
+            <div className="flex justify-between items-center"><span>MinIO (документы)</span><span className="text-green-600">Подключено</span></div>
+          </div>
+        </section>
+
+        <section className="card p-4">
+          <h3 className="text-sm font-bold text-gray-600 mb-3">ℹ️ О системе</h3>
+          <p className="text-sm text-gray-600">REFLY АСУ ТК v2.0.0-beta</p>
+          <p className="text-xs text-gray-500 mt-1">Part-M RU · Гармонизировано с ICAO/EASA</p>
+          <p className="text-xs text-gray-400 mt-2">© 2025–2026 REFLY Aviation Technologies</p>
+        </section>
+
+        {prefs && (
+        <>
         <section className="card p-4">
           <h3 className="text-sm font-bold text-gray-600 mb-3">📢 Типы уведомлений</h3>
           <Toggle label="⚠️ Обязательные ДЛГ (mandatory AD)" field="ad_mandatory" />
@@ -78,6 +121,8 @@ export default function SettingsPage() {
           className="btn-primary px-6 py-2 rounded text-sm disabled:opacity-50">
           {saving ? '⏳ Сохранение...' : '💾 Сохранить настройки'}
         </button>
+        </>
+        )}
       </div>
     </PageLayout>
   );

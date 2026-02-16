@@ -1,9 +1,13 @@
 'use client';
 
+import { statusIcons, type StatusKey } from '@/icons/refly-icons';
+import { Icon } from '@/components/Icon';
+
 interface Props {
   status: string;
   colorMap?: Record<string, string>;
   labelMap?: Record<string, string>;
+  showIcon?: boolean;
 }
 
 const defaults: Record<string, string> = {
@@ -17,8 +21,16 @@ const defaults: Record<string, string> = {
   overdue: 'bg-red-600', deferred: 'bg-yellow-600',
 };
 
-export default function StatusBadge({ status, colorMap, labelMap }: Props) {
+export default function StatusBadge({ status, colorMap, labelMap, showIcon = true }: Props) {
   const color = colorMap?.[status] || defaults[status] || 'bg-gray-400';
   const label = labelMap?.[status] || status;
-  return <span className={`status-badge ${color}`}>{label}</span>;
+  const StatusIcon = statusIcons[status as StatusKey];
+  return (
+    <span className={`status-badge ${color} inline-flex items-center gap-1.5`}>
+      {showIcon && StatusIcon && (
+        <Icon icon={StatusIcon} className="size-4 shrink-0 opacity-90" strokeWidth={1.75} />
+      )}
+      {label}
+    </span>
+  );
 }

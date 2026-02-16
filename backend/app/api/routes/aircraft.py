@@ -28,11 +28,17 @@ def _serialize_aircraft(a: Aircraft, db: Session) -> AircraftOut:
     return AircraftOut.model_validate({
         "id": a.id,
         "registration_number": a.registration_number,
-        "aircraft_type": {
-            "id": a.aircraft_type.id, "manufacturer": a.aircraft_type.manufacturer,
-            "model": a.aircraft_type.model, "created_at": a.aircraft_type.created_at,
-            "updated_at": a.aircraft_type.updated_at,
-        } if a.aircraft_type else None,
+        "aircraft_type": (
+            {
+                "id": a.aircraft_type.id,
+                "manufacturer": a.aircraft_type.manufacturer,
+                "model": a.aircraft_type.model,
+                "created_at": a.aircraft_type.created_at,
+                "updated_at": a.aircraft_type.updated_at,
+            }
+            if a.aircraft_type
+            else None
+        ),
         "operator_id": a.operator_id, "operator_name": operator_name,
         "serial_number": a.serial_number,
         "manufacture_date": getattr(a, 'manufacture_date', None),
@@ -88,7 +94,7 @@ def list_aircraft(
     items = []
     for a in items_raw:
         try:
-            if a.aircraft_type: items.append(_serialize_aircraft(a, db))
+            items.append(_serialize_aircraft(a, db))
         except Exception as e:
             logger.error(f"Serialization error for aircraft {a.id}: {e}")
     return {"items": items, "total": total, "page": page, "per_page": per_page,

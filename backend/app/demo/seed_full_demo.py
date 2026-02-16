@@ -15,6 +15,7 @@ from app.models import (
     CertApplication,
     CertApplicationStatus,
     RiskAlert,
+    AirworthinessCertificate,
 )
 from app.models.aircraft_db import Aircraft
 from app.models.personnel_plg import PLGSpecialist, PLGQualification
@@ -212,9 +213,11 @@ def seed_full_demo():
         if plg_org:
             specialists_data = [
                 ("Петрова Елена В.", "ПЕТРОВА-001", "Инспектор ЛГ", "I", "LIC-2024-001", "2026-12-01"),
-                ("Волков Алексей Н.", "ВОЛКОВ-001", "Инженер ТОиР", "B2", "LIC-2024-002", "2026-08-15"),
+                ("Волков Алексей Н.", "ВОЛКОВ-001", "Инженер по ТО", "B2", "LIC-2024-002", "2026-08-15"),
                 ("Морозова Ольга С.", "МОРОЗОВА-001", "Авиатехник B1", "B1", "LIC-2024-003", "2026-03-20"),
-                ("Козлов Дмитрий И.", "КОЗЛОВ-001", "Пилот CAT.A", "CAT-A", "LIC-2024-004", "2027-01-10"),
+                ("Козлов Дмитрий И.", "КОЗЛОВ-001", "Инженер CAT.A", "CAT-A", "LIC-2024-004", "2027-01-10"),
+                ("Николаев Павел Р.", "НИКОЛАЕВ-001", "Инспектор Росавиации", "I", "LIC-2024-005", "2026-09-30"),
+                ("Сидорова Анна М.", "СИДОРОВА-001", "Диспетчер ТОиР", "D", "LIC-2024-006", "2026-11-15"),
             ]
             for full_name, personnel_number, position, category, license_no, expires in specialists_data:
                 if db.query(PLGSpecialist).filter(PLGSpecialist.personnel_number == personnel_number).first():
@@ -247,6 +250,69 @@ def seed_full_demo():
                 db.add(q)
             db.commit()
             logger.info("seed_full_demo: personnel PLG checked/created")
+
+        # ─── 7. Сертификаты лётной годности (СЛГ) ─────────────────────────
+        issuer = db.query(User).filter(User.role.in_(["admin", "authority_inspector"])).first()
+        issuer_id = str(issuer.id) if issuer else None
+        certs_data = [
+            ("KLG-2025-001", "RA-89060", "2026-08-15", "valid"),
+            ("KLG-2025-002", "RA-89061", "2026-05-20", "valid"),
+            ("KLG-2024-015", "RA-73801", "2026-02-28", "expiring_soon"),
+            ("KLG-2025-003", "RA-12345", "2027-01-10", "valid"),
+        ]
+        for cert_num, reg, valid_until, status in certs_data:
+            if db.query(AirworthinessCertificate).filter(AirworthinessCertificate.certificate_number == cert_num).first():
+                continue
+            ac_id = _get_aircraft_id_by_reg(db, reg)
+            if not ac_id:
+                ac_id = _get_first_aircraft_id(db)
+            if not ac_id or not issuer_id:
+                continue
+            exp_d = datetime.strptime(valid_until, "%Y-%m-%d").date()
+            issue_d = exp_d - timedelta(days=365)
+            db.add(
+                AirworthinessCertificate(
+                    aircraft_id=ac_id,
+                    certificate_number=cert_num,
+                    certificate_type="standard",
+                    issue_date=datetime(issue_d.year, issue_d.month, issue_d.day, tzinfo=timezone.utc),
+                    expiry_date=datetime(exp_d.year, exp_d.month, exp_d.day, tzinfo=timezone.utc),
+                    issuing_authority="Росавиация",
+                    issued_by_user_id=issuer_id,
+                    status=status,
+                )
+            )
+        db.commit()
+        logger.info("seed_full_demo: airworthiness certificates checked/created")
+
+        # ─── 8. Наряды на работу (Work Orders, in-memory) ──────────────────
+        try:
+            from app.api.routes.work_orders import _work_orders
+            aircraft_regs = [r[0] for r in db.query(Aircraft.registration_number).limit(5).all()]
+            reg1 = aircraft_regs[0] if aircraft_regs else "RA-89060"
+            reg2 = aircraft_regs[1] if len(aircraft_regs) > 1 else "RA-89061"
+            reg3 = aircraft_regs[2] if len(aircraft_regs) > 2 else "RA-73801"
+            reg4 = aircraft_regs[3] if len(aircraft_regs) > 3 else "RA-12345"
+            wos_demo = [
+                ("WO-2026-001", reg1, "Периодическое ТО A-Check", "in_progress", "urgent"),
+                ("WO-2026-002", reg2, "Замена колеса основной стойки", "open", "normal"),
+                ("WO-2026-003", reg3, "Устранение течи гидросистемы", "completed", "urgent"),
+                ("WO-2026-004", reg1, "Плановая замена фильтров двигателя", "open", "normal"),
+                ("WO-2026-005", reg4, "Внеплановое ТО после bird strike", "in_progress", "urgent"),
+            ]
+            for wo_num, reg, title, status, priority in wos_demo:
+                if any(w.get("wo_number") == wo_num for w in _work_orders.values()):
+                    continue
+                wid = str(uuid.uuid4())
+                _work_orders[wid] = {
+                    "id": wid, "wo_number": wo_num, "aircraft_reg": reg, "title": title,
+                    "wo_type": "scheduled" if "Планов" in title else "unscheduled",
+                    "description": title, "status": status, "priority": priority,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+            logger.info("seed_full_demo: work orders (in-memory) populated")
+        except Exception as e:
+            logger.warning("seed_full_demo: work orders skip %s", e)
 
     except Exception as e:
         db.rollback()

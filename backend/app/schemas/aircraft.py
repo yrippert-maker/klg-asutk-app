@@ -35,7 +35,7 @@ class AircraftUpdate(BaseModel):
 class AircraftOut(TimestampOut):
     id: str
     registration_number: str
-    aircraft_type: AircraftTypeOut
+    aircraft_type: AircraftTypeOut | None = None
     operator_id: str
     operator_name: str | None = None  # Название организации-оператора
     serial_number: str | None = None  # Серийный номер ВС

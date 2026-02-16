@@ -34,6 +34,37 @@ _maint_programs: dict = {}
 _components: dict = {}
 
 
+def seed_airworthiness_core_demo(aircraft_id: Optional[str] = None) -> None:
+    """Заполнить демо-данными ДЛГ и Life Limits при первом запуске (если пусто)."""
+    if _directives:
+        return
+    now = datetime.now(timezone.utc).isoformat()
+    demo_ads = [
+        {"number": "AD-2025-0142-R1", "title": "Замена болтов крепления двигателя", "status": "open", "compliance_deadline": "2026-04-15", "aircraft_types": ["B737", "SSJ100"], "effective_date": "2025-06-01", "compliance_type": "mandatory"},
+        {"number": "AD-2025-0089", "title": "Инспекция лонжерона крыла зона 3", "status": "complied", "compliance_date": "2025-11-20", "aircraft_types": ["B737"], "effective_date": "2025-03-01", "compliance_type": "mandatory"},
+        {"number": "AD-2026-0012", "title": "Модификация системы предупреждения TCAS", "status": "open", "compliance_deadline": "2026-06-01", "aircraft_types": ["B737", "A320"], "effective_date": "2026-01-15", "compliance_type": "mandatory"},
+        {"number": "AD-2025-0201", "title": "Замена топливного насоса", "status": "complied", "compliance_date": "2026-01-15", "aircraft_types": ["SSJ100"], "effective_date": "2025-08-01", "compliance_type": "mandatory"},
+        {"number": "AD-2025-0178", "title": "Инспекция фюзеляжа секции 41-43", "status": "open", "compliance_deadline": "2026-03-30", "aircraft_types": ["B737"], "effective_date": "2025-07-01", "compliance_type": "mandatory"},
+        {"number": "AD-2024-0315-R2", "title": "Обновление ПО FADEC двигателя", "status": "overdue", "compliance_deadline": "2025-12-01", "aircraft_types": ["CFM56"], "effective_date": "2024-10-01", "compliance_type": "mandatory"},
+    ]
+    for d in demo_ads:
+        did = str(uuid.uuid4())
+        _directives[did] = {"id": did, "created_at": now, "issuing_authority": "FATA", "ata_chapter": None, "repetitive": False, "description": "", "affected_parts": [], **d}
+    logger.info("seed_airworthiness_core: %s directives", len(demo_ads))
+
+    if not _life_limits and aircraft_id:
+        demo_ll = [
+            {"component_name": "Двигатель CFM56-5B", "part_number": "CFM-56-5B", "serial_number": "SN-001", "limit_type": "combined", "flight_hours_limit": 30000.0, "cycles_limit": 20000, "current_hours": 24580.0, "current_cycles": 15200, "aircraft_id": aircraft_id},
+            {"component_name": "Шасси основное левое", "part_number": "LG-32-001", "serial_number": "SN-102", "limit_type": "cycles", "cycles_limit": 40000, "current_cycles": 38800, "aircraft_id": aircraft_id},
+            {"component_name": "APU GTCP131-9A", "part_number": "APU-131-9A", "serial_number": "SN-201", "limit_type": "flight_hours", "flight_hours_limit": 15000.0, "current_hours": 6500.0, "aircraft_id": aircraft_id},
+            {"component_name": "Лопатки турбины ВД", "part_number": "HPT-7680", "serial_number": "SN-305", "limit_type": "cycles", "cycles_limit": 8000, "current_cycles": 7680, "aircraft_id": aircraft_id},
+        ]
+        for ll in demo_ll:
+            lid = str(uuid.uuid4())
+            _life_limits[lid] = {"id": lid, "created_at": now, "calendar_limit_months": None, "install_date": None, "last_overhaul_date": None, "notes": None, **ll}
+        logger.info("seed_airworthiness_core: %s life limits", len(demo_ll))
+
+
 # ===================================================================
 #  1. ДИРЕКТИВЫ ЛЁТНОЙ ГОДНОСТИ (AD / ДЛГ)
 # ===================================================================

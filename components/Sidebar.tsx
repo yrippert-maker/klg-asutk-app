@@ -15,6 +15,8 @@ import { sidebarIcons, commonIcons } from '@/icons/refly-icons';
 import type { SidebarKey } from '@/icons/refly-icons';
 import { Icon } from '@/components/Icon';
 
+const HEADER_ICON_KEY: SidebarKey = 'aircraft';
+
 interface MenuItem { name: string; path: string; iconKey: SidebarKey; roles?: UserRole[]; }
 
 const menuItems: MenuItem[] = [
@@ -73,7 +75,9 @@ export default function Sidebar() {
       {/* Header */}
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center text-xl">✈️</div>
+          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+            <Icon icon={sidebarIcons[HEADER_ICON_KEY]} className="size-6 text-white" strokeWidth={1.75} />
+          </div>
           <div className="text-2xl font-bold tracking-wider">REFLY</div>
         </div>
         <div className="text-xs opacity-80">КОНТРОЛЬ ЛЁТНОЙ ГОДНОСТИ</div>
@@ -92,7 +96,7 @@ export default function Sidebar() {
         {visibleItems.map((item) => {
           const active = pathname === item.path;
           return (
-            <Link key={item.path} href={item.path} aria-current={active ? 'page' : undefined}
+            <Link key={item.path} href={item.path} scroll={false} aria-current={active ? 'page' : undefined}
               onClick={() => setMobileOpen(false)}
               className={`flex items-center px-6 py-3 text-white no-underline transition-colors
                 ${active ? 'bg-white/[0.15] border-l-[3px] border-accent-blue' : 'border-l-[3px] border-transparent hover:bg-white/[0.07]'}`}>

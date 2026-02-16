@@ -78,6 +78,18 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning("Full demo seed skipped: %s", e)
+    try:
+        from app.db.session import SessionLocal
+        from app.models.aircraft_db import Aircraft
+        from app.api.routes.airworthiness_core import seed_airworthiness_core_demo
+        db = SessionLocal()
+        ac = db.query(Aircraft).filter(Aircraft.registration_number == "RA-89060").first() or db.query(Aircraft).first()
+        aircraft_id = str(ac.id) if ac else None
+        db.close()
+        seed_airworthiness_core_demo(aircraft_id)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Airworthiness core demo seed skipped: %s", e)
     # Планировщик рисков (передаём app для shutdown hook)
     setup_scheduler(app)
     yield
