@@ -67,6 +67,9 @@ class Settings(BaseSettings):
     # AI (Anthropic Claude)
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-sonnet-4-20250514"
+    # Прокси Anthropic через papa-app (Railway) — для обхода блокировки с российских IP
+    AI_PROXY_URL: str = ""
+    AI_PROXY_SECRET: str = ""
     
     @property
     def database_url(self) -> str:

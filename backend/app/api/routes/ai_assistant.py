@@ -21,8 +21,11 @@ class ChatResponse(BaseModel):
 @router.post("/chat", response_model=ChatResponse)
 async def ai_chat(req: ChatRequest, user=Depends(get_current_user)):
     api_key = getattr(settings, "ANTHROPIC_API_KEY", None) or ""
-    if not api_key or api_key == "":
-        raise HTTPException(400, "AI assistant not configured")
+    proxy_url = getattr(settings, "AI_PROXY_URL", "") or ""
+    proxy_secret = getattr(settings, "AI_PROXY_SECRET", "") or ""
+    if not proxy_url or not proxy_secret:
+        if not api_key or api_key == "":
+            raise HTTPException(400, "AI assistant not configured (set ANTHROPIC_API_KEY or AI_PROXY_URL+AI_PROXY_SECRET)")
 
     db = SessionLocal()
     try:
@@ -52,21 +55,33 @@ async def ai_chat(req: ChatRequest, user=Depends(get_current_user)):
 Отвечай на русском языке. Будь конкретным и профессиональным.
 Используй авиационную терминологию где уместно."""
 
+    payload = {
+        "model": getattr(settings, "ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+        "max_tokens": 1024,
+        "system": system_prompt,
+        "messages": [{"role": "user", "content": req.message}],
+    }
+
     async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json={
-                "model": getattr(settings, "ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
-                "max_tokens": 1024,
-                "system": system_prompt,
-                "messages": [{"role": "user", "content": req.message}],
-            },
-        )
+        if proxy_url and proxy_secret:
+            resp = await client.post(
+                proxy_url,
+                headers={
+                    "x-proxy-secret": proxy_secret,
+                    "content-type": "application/json",
+                },
+                json=payload,
+            )
+        else:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json=payload,
+            )
 
     if resp.status_code != 200:
         raise HTTPException(502, f"AI service error: {resp.status_code}")

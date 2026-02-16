@@ -95,6 +95,9 @@ services:
       FGIS_ORG_ID: ${FGIS_ORG_ID:-}
       FGIS_API_KEY: ${FGIS_API_KEY:-}
       FGIS_CERT_PATH: /etc/ssl/fgis/client.pem
+      # Прокси Anthropic через papa-app (Railway) — обход блокировки с российских IP
+      AI_PROXY_URL: ${AI_PROXY_URL:-}
+      AI_PROXY_SECRET: ${AI_PROXY_SECRET:-}
     ports:
       - "8000:8000"
     volumes:
