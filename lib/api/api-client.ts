@@ -179,6 +179,7 @@ export const auditsApi = {
   list: (params?: QueryParams) => apiFetch<PaginatedResponse<any>>(`/audits${buildQuery(params)}`),
   get: (id: string) => apiFetch(`/audits/${id}`),
   create: (data: any) => apiFetch('/audits', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: any) => apiFetch(`/audits/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   complete: (id: string) => apiFetch(`/audits/${id}/complete`, { method: 'PATCH' }),
   submitResponse: (auditId: string, data: any) => apiFetch(`/audits/${auditId}/responses`, { method: 'POST', body: JSON.stringify(data) }),
   listResponses: (auditId: string) => apiFetch<any[]>(`/audits/${auditId}/responses`),

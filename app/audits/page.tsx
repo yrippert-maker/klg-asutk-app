@@ -1,8 +1,7 @@
 'use client';
-import AuditCardModal from '@/components/AuditCardModal';
 import { useState } from 'react';
-import AuditCreateModal from '@/components/AuditCreateModal';
-import { PageLayout, FilterBar, Pagination, StatusBadge, EmptyState } from '@/components/ui';
+import AuditEditModal from '@/components/AuditEditModal';
+import { PageLayout, FilterBar, StatusBadge, EmptyState } from '@/components/ui';
 import { useAuditsData } from '@/hooks/useSWRData';
 import { auditsApi } from '@/lib/api/api-client';
 import { useAuth } from '@/lib/auth-context';
@@ -13,9 +12,20 @@ const BC: Record<string, string> = { draft: 'border-l-gray-300', in_progress: 'b
 
 export default function AuditsPage() {
   const { isAuthority } = useAuth();
-  const [sf, setSf] = useState<string|undefined>();
+  const [sf, setSf] = useState<string | undefined>();
+  const [editingAudit, setEditingAudit] = useState<any>(null);
   const { data, isLoading, mutate } = useAuditsData({ status: sf });
   const audits = data?.items || [];
+
+  const handleSaveAudit = async (id: string, payload: any) => {
+    try {
+      await auditsApi.update(id, payload);
+      mutate();
+      setEditingAudit(null);
+    } catch (e: any) {
+      alert(e?.message || 'Ошибка сохранения');
+    }
+  };
 
   return (
     <PageLayout title="Аудиты" subtitle={isLoading ? 'Загрузка...' : `Всего: ${data?.total || 0}`}>
@@ -26,11 +36,14 @@ export default function AuditsPage() {
           {audits.map((a: any) => (
             <div key={a.id} className={`card p-5 border-l-4 ${BC[a.status] || 'border-l-gray-300'} flex justify-between items-center`}>
               <div>
-                <div className="font-bold">Аудит #{a.id.slice(0,8)}</div>
-                <div className="text-xs text-gray-500 mt-1">ВС: {a.aircraft_id?.slice(0,8)||'—'} {a.planned_at && `· ${new Date(a.planned_at).toLocaleDateString('ru-RU')}`}</div>
+                <div className="font-bold">Аудит #{a.id.slice(0, 8)}</div>
+                <div className="text-xs text-gray-500 mt-1">ВС: {a.aircraft_id?.slice(0, 8) || '—'} {a.planned_at && `· ${new Date(a.planned_at).toLocaleDateString('ru-RU')}`}</div>
               </div>
               <div className="flex gap-2 items-center">
                 <StatusBadge status={a.status} colorMap={SC} labelMap={ST} />
+                <button onClick={() => setEditingAudit(a)} className="btn-sm bg-gray-100 text-gray-600 hover:bg-gray-200 p-1.5 rounded" title="Редактировать">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                </button>
                 {a.status === 'in_progress' && isAuthority && (
                   <button onClick={async () => { await auditsApi.complete(a.id); mutate(); }} className="btn-sm bg-green-500 text-white">Завершить</button>
                 )}
@@ -39,6 +52,7 @@ export default function AuditsPage() {
           ))}
         </div>
       ) : <EmptyState message="Нет аудитов." />}
+      <AuditEditModal isOpen={!!editingAudit} onClose={() => setEditingAudit(null)} audit={editingAudit} onSave={handleSaveAudit} />
     </PageLayout>
   );
 }

@@ -14,7 +14,28 @@ import { PageLayout, DataTable, StatusBadge, Modal, EmptyState } from '@/compone
 type Tab = 'specialists' | 'programs' | 'attestations' | 'compliance';
 
 interface Specialist { id: string; full_name: string; personnel_number: string; position: string; category: string; specializations: string[]; license_number?: string; license_expires?: string; status: string; compliance?: any; attestations?: any[]; qualifications?: any[]; }
-interface Program { id: string; name: string; type: string; legal_basis: string; duration_hours: number; modules?: any[]; periodicity?: string; certificate_validity_years?: number; }
+interface Program { id: string; name: string; type: string; legal_basis?: string; duration_hours: number; modules?: any[]; periodicity?: string; certificate_validity_years?: number; status?: string; last_passed_date?: string; }
+interface ProgramCompletion { id: string; full_name: string; position: string; program_name: string; status: string; date: string; valid_until: string; }
+
+const DEMO_PROGRAMS: Program[] = [
+  { id: 'PLG-INIT-001', name: 'Первичная подготовка специалиста по ПЛГ', type: 'initial', duration_hours: 240, certificate_validity_years: 0, status: 'активна', last_passed_date: '2024-09-15' },
+  { id: 'PLG-REC-001', name: 'Периодическое повышение квалификации (recurrent)', type: 'recurrent', duration_hours: 40, periodicity: 'Каждые 24 месяца', certificate_validity_years: 2, status: 'активна', last_passed_date: '2024-11-01' },
+  { id: 'PLG-TYPE-001', name: 'Подготовка на тип ВС SSJ-100', type: 'type_rating', duration_hours: 80, status: 'активна', last_passed_date: '2024-06-20' },
+  { id: 'PLG-EWIS-001', name: 'EWIS — Электропроводка и соединители', type: 'ewis', duration_hours: 16, status: 'активна', last_passed_date: '2024-08-10' },
+  { id: 'PLG-SMS-001', name: 'SMS — Система управления безопасностью', type: 'sms', duration_hours: 8, status: 'активна', last_passed_date: '2024-10-05' },
+  { id: 'PLG-HF-001', name: 'Человеческий фактор', type: 'human_factors', duration_hours: 8, status: 'активна', last_passed_date: '2024-07-12' },
+  { id: 'PLG-NDT-001', name: 'НК/NDT — Неразрушающий контроль', type: 'ndt', duration_hours: 24, status: 'активна', last_passed_date: '2024-05-22' },
+];
+
+const DEMO_PROGRAM_COMPLETIONS: ProgramCompletion[] = [
+  { id: '1', full_name: 'Иванов Иван Иванович', position: 'Авиатехник B1', program_name: 'Первичная подготовка специалиста по ПЛГ', status: 'Пройдена', date: '2022-09-15', valid_until: '—' },
+  { id: '2', full_name: 'Петров Пётр Петрович', position: 'Авиатехник B2', program_name: 'Периодическое повышение квалификации', status: 'Пройдена', date: '2024-11-01', valid_until: '2026-11-01' },
+  { id: '3', full_name: 'Сидорова Анна Сергеевна', position: 'Инженер по ТО', program_name: 'Подготовка на тип ВС SSJ-100', status: 'Пройдена', date: '2024-06-20', valid_until: '—' },
+  { id: '4', full_name: 'Козлов Михаил Андреевич', position: 'Специалист по НК', program_name: 'НК/NDT — Неразрушающий контроль', status: 'Пройдена', date: '2024-05-22', valid_until: '2026-05-22' },
+  { id: '5', full_name: 'Новикова Елена Викторовна', position: 'Авиатехник B1', program_name: 'EWIS — Электропроводка', status: 'В процессе', date: '2024-12-01', valid_until: '—' },
+  { id: '6', full_name: 'Иванов Иван Иванович', position: 'Авиатехник B1', program_name: 'Периодическое повышение квалификации', status: 'Пройдена', date: '2024-03-10', valid_until: '2026-03-10' },
+  { id: '7', full_name: 'Петров Пётр Петрович', position: 'Авиатехник B2', program_name: 'SMS — Система управления безопасностью', status: 'Пройдена', date: '2024-10-05', valid_until: '2026-10-05' },
+];
 
 export default function PersonnelPLGPage() {
   const [tab, setTab] = useState<Tab>('specialists');
@@ -24,6 +45,9 @@ export default function PersonnelPLGPage() {
   const [selected, setSelected] = useState<Specialist | null>(null);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddProgramModal, setShowAddProgramModal] = useState(false);
+  const [editingCompletion, setEditingCompletion] = useState<ProgramCompletion | null>(null);
+  const [programCompletions, setProgramCompletions] = useState<ProgramCompletion[]>(DEMO_PROGRAM_COMPLETIONS);
   const [loading, setLoading] = useState(false);
 
   const api = useCallback(async (endpoint: string, opts?: RequestInit) => {
@@ -35,10 +59,20 @@ export default function PersonnelPLGPage() {
     setLoading(true);
     Promise.all([
       api('specialists').then(d => setSpecialists(d.items || [])),
-      api('programs').then(d => setPrograms(d.programs || [])),
+      api('programs').then(d => setPrograms(Array.isArray(d?.programs) && d.programs.length > 0 ? d.programs : DEMO_PROGRAMS)),
       api('compliance-report').then(d => setCompliance(d)),
     ]).finally(() => setLoading(false));
   }, [api]);
+
+  const exportProgramCompletions = () => {
+    const headers = ['ФИО', 'Должность', 'Программа', 'Статус прохождения', 'Дата', 'Срок действия'];
+    const rows = programCompletions.map(c => [c.full_name, c.position, c.program_name, c.status, c.date, c.valid_until]);
+    const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'program_completions.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleAddSpecialist = async (data: any) => {
     const result = await api('specialists', {
@@ -113,28 +147,60 @@ export default function PersonnelPLGPage() {
 
           {/* PROGRAMS */}
           {tab === 'programs' && (
-            <div className="space-y-3">
-              {programs.map(p => (
-                <div key={p.id} onClick={() => setSelectedProgram(p)}
-                  className="card p-4 cursor-pointer hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{programTypeLabels[p.type]?.split(' ')[0] || '📋'}</span>
-                        <span className="font-medium text-sm">{p.name}</span>
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2 items-center">
+                <button onClick={() => setShowAddProgramModal(true)} className="btn-primary text-sm px-4 py-2 rounded">+ Добавить программу</button>
+                <button onClick={exportProgramCompletions} className="btn-sm bg-gray-100 text-gray-700 px-4 py-2 rounded text-sm">Экспорт</button>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {programs.map(p => (
+                  <div key={p.id} onClick={() => setSelectedProgram(p)}
+                    className="card p-4 cursor-pointer hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{programTypeLabels[p.type]?.split(' ')[0] || '📋'}</span>
+                          <span className="font-medium text-sm">{p.name}</span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">{p.legal_basis || `${p.duration_hours} ч.`}</div>
+                        {p.last_passed_date && <div className="text-[10px] text-gray-400 mt-1">Последнее прохождение: {new Date(p.last_passed_date).toLocaleDateString('ru-RU')}</div>}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">{p.legal_basis}</div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="badge bg-primary-100 text-primary-700">{p.duration_hours} ч.</div>
-                      {p.periodicity && <div className="text-[10px] text-gray-400 mt-1">{p.periodicity}</div>}
-                      {p.certificate_validity_years ? (
-                        <div className="text-[10px] text-gray-400">Срок: {p.certificate_validity_years} лет</div>
-                      ) : null}
+                      <div className="text-right shrink-0 flex gap-1">
+                        <button onClick={e => { e.stopPropagation(); setSelectedProgram(p); }} className="btn-sm bg-gray-100 text-gray-600 hover:bg-gray-200 p-1.5 rounded" title="Редактировать">✏️</button>
+                        <div className="badge bg-primary-100 text-primary-700">{p.duration_hours} ч.</div>
+                        {p.periodicity && <div className="text-[10px] text-gray-400 mt-1">{p.periodicity}</div>}
+                        {p.certificate_validity_years ? <div className="text-[10px] text-gray-400">Срок: {p.certificate_validity_years} лет</div> : null}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <h3 className="text-sm font-bold text-gray-700 mt-4">Прохождение программ</h3>
+              <div className="card overflow-x-auto">
+                <table className="w-full">
+                  <thead><tr className="bg-gray-50">
+                    <th className="table-header">ФИО</th><th className="table-header">Должность</th><th className="table-header">Программа</th>
+                    <th className="table-header">Статус прохождения</th><th className="table-header">Дата</th><th className="table-header">Срок действия</th><th className="table-header">Действия</th>
+                  </tr></thead>
+                  <tbody>
+                    {programCompletions.map(c => (
+                      <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="table-cell font-medium">{c.full_name}</td>
+                        <td className="table-cell text-gray-600">{c.position}</td>
+                        <td className="table-cell text-gray-600">{c.program_name}</td>
+                        <td className="table-cell">
+                          <span className={`badge ${c.status === 'Пройдена' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{c.status}</span>
+                        </td>
+                        <td className="table-cell text-sm">{c.date}</td>
+                        <td className="table-cell text-sm">{c.valid_until}</td>
+                        <td className="table-cell">
+                          <button onClick={() => setEditingCompletion(c)} className="btn-sm bg-gray-100 text-gray-600 hover:bg-gray-200 p-1.5 rounded" title="Редактировать">✏️</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -287,6 +353,27 @@ export default function PersonnelPLGPage() {
       {/* Add specialist modal */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Добавить специалиста ПЛГ" size="lg">
         <AddSpecialistForm onSubmit={handleAddSpecialist} onCancel={() => setShowAddModal(false)} />
+      </Modal>
+
+      {/* Add program modal (демо — только локальное состояние) */}
+      <Modal isOpen={showAddProgramModal} onClose={() => setShowAddProgramModal(false)} title="Добавить программу подготовки" size="md"
+        footer={<><button onClick={() => setShowAddProgramModal(false)} className="btn-secondary">Отмена</button><button onClick={() => { setPrograms(prev => [...prev, { id: 'PLG-NEW-' + Date.now(), name: 'Новая программа', type: 'recurrent', duration_hours: 40, status: 'активна' }]); setShowAddProgramModal(false); }} className="btn-primary">Добавить</button></>}>
+        <div className="text-sm text-gray-600">Программы подготовки задаются нормативными документами (ФАП-147 и др.). Для добавления кастомной программы обратитесь к администратору системы.</div>
+      </Modal>
+
+      {/* Edit completion modal */}
+      <Modal isOpen={!!editingCompletion} onClose={() => setEditingCompletion(null)} title="Редактировать запись о прохождении" size="md"
+        footer={<><button onClick={() => setEditingCompletion(null)} className="btn-secondary">Отмена</button><button onClick={() => setEditingCompletion(null)} className="btn-primary">Сохранить</button></>}>
+        {editingCompletion && (
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div><label className="text-gray-500">ФИО</label><div className="font-medium mt-1">{editingCompletion.full_name}</div></div>
+            <div><label className="text-gray-500">Должность</label><div className="mt-1">{editingCompletion.position}</div></div>
+            <div><label className="text-gray-500">Программа</label><div className="mt-1">{editingCompletion.program_name}</div></div>
+            <div><label className="text-gray-500">Статус</label><div className="mt-1">{editingCompletion.status}</div></div>
+            <div><label className="text-gray-500">Дата</label><div className="mt-1">{editingCompletion.date}</div></div>
+            <div><label className="text-gray-500">Срок действия</label><div className="mt-1">{editingCompletion.valid_until}</div></div>
+          </div>
+        )}
       </Modal>
     </PageLayout>
   );

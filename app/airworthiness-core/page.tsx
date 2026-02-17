@@ -8,9 +8,32 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PageLayout, DataTable, StatusBadge, Modal, EmptyState } from '@/components/ui';
 
-type Tab = 'directives' | 'bulletins' | 'life-limits' | 'maint-programs' | 'components';
+type Tab = 'control' | 'directives' | 'bulletins' | 'life-limits' | 'maint-programs' | 'components';
+
+interface ControlRecord {
+  id: string;
+  registration: string;
+  aircraft_type: string;
+  last_check_date: string;
+  status: string;
+  valid_until: string;
+  responsible: string;
+  notes?: string;
+  history?: { date: string; type: string; result: string }[];
+}
+
+const DEMO_CONTROL: ControlRecord[] = [
+  { id: '1', registration: 'RA-73001', aircraft_type: 'SSJ-100', last_check_date: '2024-11-15', status: 'Годен', valid_until: '2025-11-15', responsible: 'Иванов И.И.', history: [{ date: '2024-11-15', type: 'Периодический осмотр', result: 'Годен' }, { date: '2023-11-10', type: 'Периодический осмотр', result: 'Годен' }] },
+  { id: '2', registration: 'RA-73002', aircraft_type: 'MC-21', last_check_date: '2024-10-20', status: 'Годен', valid_until: '2025-10-20', responsible: 'Петров П.П.' },
+  { id: '3', registration: 'RA-73003', aircraft_type: 'Ан-148', last_check_date: '2024-09-05', status: 'Ограниченно годен', valid_until: '2025-01-05', responsible: 'Сидорова А.С.', notes: 'Ограничение по наработке двигателя' },
+  { id: '4', registration: 'VQ-BAB', aircraft_type: 'Boeing 737-800', last_check_date: '2024-12-01', status: 'Годен', valid_until: '2025-12-01', responsible: 'Козлов М.А.' },
+  { id: '5', registration: 'RA-73005', aircraft_type: 'Airbus A320', last_check_date: '2024-08-12', status: 'Годен', valid_until: '2025-08-12', responsible: 'Новикова Е.В.' },
+  { id: '6', registration: 'RA-73006', aircraft_type: 'SSJ-100', last_check_date: '2024-11-28', status: 'Годен', valid_until: '2025-11-28', responsible: 'Иванов И.И.' },
+  { id: '7', registration: 'RA-73007', aircraft_type: 'MC-21', last_check_date: '2024-10-10', status: 'На проверке', valid_until: '—', responsible: 'Петров П.П.' },
+];
 
 const TABS: { id: Tab; label: string; icon: string; basis: string }[] = [
+  { id: 'control', label: 'Контроль ЛГ', icon: '✈️', basis: 'ВК РФ ст. 36; ФАП-148; Контроль лётной годности ВС' },
   { id: 'directives', label: 'ДЛГ / AD', icon: '⚠️', basis: 'ВК РФ ст. 37; ФАП-148 п.4.3' },
   { id: 'bulletins', label: 'Бюллетени SB', icon: '📢', basis: 'ФАП-148 п.4.5; EASA Part-21' },
   { id: 'life-limits', label: 'Ресурсы', icon: '⏱️', basis: 'ФАП-148 п.4.2; EASA Part-M.A.302' },
@@ -19,10 +42,14 @@ const TABS: { id: Tab; label: string; icon: string; basis: string }[] = [
 ];
 
 export default function AirworthinessCorePage() {
-  const [tab, setTab] = useState<Tab>('directives');
+  const [tab, setTab] = useState<Tab>('control');
   const [data, setData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [controlRecords, setControlRecords] = useState<ControlRecord[]>(DEMO_CONTROL);
+  const [selectedControl, setSelectedControl] = useState<ControlRecord | null>(null);
+  const [controlFilter, setControlFilter] = useState('');
+  const [controlSort, setControlSort] = useState<'registration' | 'last_check_date' | 'status'>('registration');
 
   const api = useCallback(async (endpoint: string, opts?: RequestInit) => {
     const res = await fetch(`/api/v1/airworthiness-core/${endpoint}`, opts);
@@ -30,13 +57,40 @@ export default function AirworthinessCorePage() {
   }, []);
 
   useEffect(() => {
+    if (tab === 'control') { setLoading(false); return; }
     setLoading(true);
     const endpoint = tab === 'life-limits' ? 'life-limits' : tab === 'maint-programs' ? 'maintenance-programs' : tab;
     api(endpoint).then(d => { setData(prev => ({ ...prev, [tab]: d })); setLoading(false); });
   }, [tab, api]);
 
   const currentTab = TABS.find(t => t.id === tab)!;
-  const items = data[tab]?.items || [];
+  const items = tab === 'control' ? [] : (data[tab]?.items || []);
+
+  const filteredControl = controlRecords
+    .filter(r => !controlFilter || r.registration.toLowerCase().includes(controlFilter.toLowerCase()) || r.aircraft_type.toLowerCase().includes(controlFilter.toLowerCase()) || r.status.toLowerCase().includes(controlFilter.toLowerCase()))
+    .sort((a, b) => {
+      const va = a[controlSort], vb = b[controlSort];
+      return String(va).localeCompare(String(vb), undefined, { numeric: true });
+    });
+
+  const downloadCertificate = (r: ControlRecord) => {
+    const text = [
+      'СЕРТИФИКАТ ЛЁТНОЙ ГОДНОСТИ (выписка)',
+      `Бортовой номер: ${r.registration}`,
+      `Тип ВС: ${r.aircraft_type}`,
+      `Дата последней проверки: ${r.last_check_date}`,
+      `Статус ЛГ: ${r.status}`,
+      `Срок действия: ${r.valid_until}`,
+      `Ответственный: ${r.responsible}`,
+      r.notes ? `Примечания: ${r.notes}` : '',
+      '',
+      'Документ сформирован системой КЛГ АСУ ТК. © АО «REFLY»',
+    ].filter(Boolean).join('\n');
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `certificate_${r.registration}.txt`; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const statusColors: Record<string, string> = {
     open: 'bg-red-500', complied: 'bg-green-500', incorporated: 'bg-green-500',
@@ -74,6 +128,42 @@ export default function AirworthinessCorePage() {
 
       {loading ? <div className="text-center py-10 text-gray-400">⏳ Загрузка...</div> : (
         <>
+          {/* CONTROL LG */}
+          {tab === 'control' && (
+            <>
+              <div className="flex gap-2 mb-4 items-center">
+                <input type="text" placeholder="Фильтр (борт, тип, статус)..." value={controlFilter} onChange={e => setControlFilter(e.target.value)} className="input-field w-64" />
+                <span className="text-xs text-gray-500">Сортировка:</span>
+                {(['registration', 'last_check_date', 'status'] as const).map(k => (
+                  <button key={k} onClick={() => setControlSort(k)} className={`px-2 py-1 rounded text-xs ${controlSort === k ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>
+                    {k === 'registration' ? 'Борт' : k === 'last_check_date' ? 'Дата' : 'Статус'}
+                  </button>
+                ))}
+              </div>
+              <div className="card overflow-x-auto">
+                <table className="w-full">
+                  <thead><tr className="bg-gray-50">
+                    <th className="table-header">Бортовой номер</th><th className="table-header">Тип ВС</th><th className="table-header">Дата последней проверки</th>
+                    <th className="table-header">Статус ЛГ</th><th className="table-header">Срок действия</th><th className="table-header">Ответственный</th>
+                  </tr></thead>
+                  <tbody>
+                    {filteredControl.map(r => (
+                      <tr key={r.id} onClick={() => setSelectedControl(r)} className="border-b border-gray-100 hover:bg-blue-50 cursor-pointer">
+                        <td className="table-cell font-medium text-primary-600">{r.registration}</td>
+                        <td className="table-cell">{r.aircraft_type}</td>
+                        <td className="table-cell">{r.last_check_date}</td>
+                        <td className="table-cell"><span className={`badge ${r.status === 'Годен' ? 'bg-green-100 text-green-700' : r.status === 'Ограниченно годен' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100'}`}>{r.status}</span></td>
+                        <td className="table-cell">{r.valid_until}</td>
+                        <td className="table-cell text-gray-600">{r.responsible}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {filteredControl.length === 0 && <EmptyState message="Нет записей контроля ЛГ" />}
+            </>
+          )}
+
           {/* DIRECTIVES (AD/ДЛГ) */}
           {tab === 'directives' && (
             items.length > 0 ? (
@@ -164,6 +254,37 @@ export default function AirworthinessCorePage() {
           )}
         </>
       )}
+
+      {/* Control LG detail modal */}
+      <Modal isOpen={!!selectedControl} onClose={() => setSelectedControl(null)} title={selectedControl ? `Контроль ЛГ — ${selectedControl.registration}` : ''} size="md"
+        footer={selectedControl ? (
+          <div className="flex gap-2">
+            <button onClick={() => setSelectedControl(null)} className="btn-secondary">Редактировать</button>
+            <button onClick={() => downloadCertificate(selectedControl)} className="btn-primary">Скачать сертификат</button>
+            <button onClick={() => setSelectedControl(null)} className="btn-secondary">Закрыть</button>
+          </div>
+        ) : undefined}>
+        {selectedControl && (
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-2">
+              <div><span className="text-gray-500">Бортовой номер</span><div className="font-medium">{selectedControl.registration}</div></div>
+              <div><span className="text-gray-500">Тип ВС</span><div>{selectedControl.aircraft_type}</div></div>
+              <div><span className="text-gray-500">Дата последней проверки</span><div>{selectedControl.last_check_date}</div></div>
+              <div><span className="text-gray-500">Статус ЛГ</span><div><span className={`badge ${selectedControl.status === 'Годен' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{selectedControl.status}</span></div>
+              <div><span className="text-gray-500">Срок действия</span><div>{selectedControl.valid_until}</div></div>
+              <div><span className="text-gray-500">Ответственный</span><div>{selectedControl.responsible}</div></div>
+            </div>
+            {selectedControl.notes && <div><span className="text-gray-500">Примечания</span><p className="mt-1">{selectedControl.notes}</p></div>}
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">История проверок</h4>
+              <ul className="space-y-1 text-gray-600">
+                {(selectedControl.history || []).map((h, i) => <li key={i}>{h.date} — {h.type}: {h.result}</li>)}
+                {(!selectedControl.history || selectedControl.history.length === 0) && <li>Нет данных</li>}
+              </ul>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Legal basis footer */}
       <div className="mt-6 text-[10px] text-gray-400">

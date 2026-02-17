@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import Logo from '@/components/Logo';
+import ReflyLogo from '@/components/ReflyLogo';
 
 const DEMO_ACCOUNTS = [
   { token: 'dev', icon: '👤', label: 'Разработчик', desc: 'Локальная разработка' },
@@ -35,7 +35,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-12 rounded-xl shadow-lg max-w-md w-full">
         <div className="text-center mb-8">
-          <Logo size="large" />
+          <div className="flex justify-center">
+            <ReflyLogo iconSize={48} showText={true} variant="dark" />
+          </div>
           <h1 className="text-2xl font-bold text-primary-500 mt-4">КЛГ АСУ ТК</h1>
           <p className="text-sm text-gray-400 mt-2">Контроль лётной годности · Вход</p>
         </div>

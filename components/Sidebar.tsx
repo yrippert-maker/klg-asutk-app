@@ -14,8 +14,7 @@ import { useAuth, UserRole } from '@/lib/auth-context';
 import { sidebarIcons, commonIcons } from '@/icons/refly-icons';
 import type { SidebarKey } from '@/icons/refly-icons';
 import { Icon } from '@/components/Icon';
-
-const HEADER_ICON_KEY: SidebarKey = 'aircraft';
+import ReflyLogo from '@/components/ReflyLogo';
 
 interface MenuItem { name: string; path: string; iconKey: SidebarKey; roles?: UserRole[]; }
 
@@ -46,7 +45,7 @@ const menuItems: MenuItem[] = [
   { name: 'Справка', path: '/help', iconKey: 'help' },
   { name: 'Настройки', path: '/settings', iconKey: 'settings' },
   { name: 'ФГИС РЭВС', path: '/fgis-revs', iconKey: 'fgis-revs', roles: ['admin'] },
-  { name: 'Панель ФАВТ', path: '/regulator', iconKey: 'regulator', roles: ['admin', 'favt_inspector'] },
+  { name: 'Регулятор (Минтранс, ФАВТ, Ространснадзор)', path: '/regulator', iconKey: 'regulator', roles: ['admin', 'favt_inspector'] },
 ];
 
 export default function Sidebar() {
@@ -74,11 +73,8 @@ export default function Sidebar() {
 
       {/* Header */}
       <div className="p-6 border-b border-white/10">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-            <Icon icon={sidebarIcons[HEADER_ICON_KEY]} className="size-6 text-white" strokeWidth={1.75} />
-          </div>
-          <div className="text-2xl font-bold tracking-wider">REFLY</div>
+        <div className="mb-2">
+          <ReflyLogo iconSize={40} showText={true} variant="light" />
         </div>
         <div className="text-xs opacity-80">КОНТРОЛЬ ЛЁТНОЙ ГОДНОСТИ</div>
         <div className="text-xs opacity-80">АСУ ТК</div>
