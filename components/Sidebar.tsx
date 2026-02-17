@@ -46,7 +46,7 @@ const menuItems: MenuItem[] = [
   { name: 'Справка', path: '/help', iconKey: 'help' },
   { name: 'Настройки', path: '/settings', iconKey: 'settings' },
   { name: 'ФГИС РЭВС', path: '/fgis-revs', iconKey: 'fgis-revs', roles: ['admin'] },
-  { name: 'Панель ФАВТ', path: '/regulator', iconKey: 'regulator', roles: ['admin', 'favt_inspector'] },
+  { name: 'Регулятор (Минтранс, ФАВТ, Ространснадзор)', path: '/regulator', iconKey: 'regulator', roles: ['admin', 'favt_inspector'] },
 ];
 
 export default function Sidebar() {
