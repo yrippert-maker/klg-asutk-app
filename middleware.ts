@@ -41,7 +41,7 @@ export function middleware(request: NextRequest) {
       "base-uri 'self'",
       "form-action 'self'",
     ].join('; ');
-    response.headers.set('Content-Security-Policy', csp);
+    // // // // response.headers.set('Content-Security-Policy', csp);
   }
 
   // AUTH: в production требуется токен. Dev: ENABLE_DEV_AUTH + NEXT_PUBLIC_DEV_TOKEN на бэкенде

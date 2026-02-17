@@ -27,7 +27,7 @@ export default function AircraftEditModal({ isOpen, onClose, aircraft, onSave }:
       setForm({
         registration_number: aircraft.registration_number ?? aircraft.registrationNumber ?? '',
         serial_number: aircraft.serial_number ?? '',
-        aircraft_type: typeStr || aircraft.aircraft_type ?? '',
+        aircraft_type: typeStr || (aircraft.aircraft_type ?? ''),
         model: aircraft.model ?? '',
         operator_id: aircraft.operator_id ?? aircraft.operator ?? '',
       });

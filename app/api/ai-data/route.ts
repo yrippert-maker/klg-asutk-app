@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     
     // Валидация фильтров
     if (filters) {
-      filterSchema.parse(filters);
+      filterSchema(filters);
     }
     
     // Логирование доступа

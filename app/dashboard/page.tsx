@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api/api-client';
 
 interface DashboardData {
-  overview: any; directives: any; lifeLimits: any; personnel: any; risks: any;
+  overview: any; directives: any; lifeLimits: any; personnel: any; risks: any; woStats: any; openDefects: any; fgisStatus: any;
 }
 
 function StatCard({ label, value, sub, color, href }: { label: string; value: number | string; sub?: string; color: string; href?: string }) {
@@ -21,8 +21,9 @@ function StatCard({ label, value, sub, color, href }: { label: string; value: nu
     gray: 'bg-gray-50 border-gray-200 text-gray-700',
     purple: 'bg-purple-50 border-purple-200 text-purple-700',
   };
+  const cls = colors[color] + (href ? " cursor-pointer hover:shadow-md transition-shadow" : "");
   const card = (
-    <div className={`rounded-lg border p-4 ${colors[color]} ${href ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}>
+    <div className={"rounded-lg border p-4 " + cls}>
       <div className="text-3xl font-bold">{value}</div>
       <div className="text-sm font-medium mt-1">{label}</div>
       {sub && <div className="text-[10px] opacity-60 mt-0.5">{sub}</div>}

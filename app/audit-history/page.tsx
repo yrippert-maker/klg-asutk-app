@@ -23,7 +23,7 @@ export default function AuditHistoryPage() {
     return true;
   });
 
-  const actions = [...new Set(logs.map(l => l.action).filter(Boolean))];
+  const actions = Array.from(new Set(logs.map(l => l.action).filter(Boolean)));
 
   return (
     <PageLayout title="📝 История изменений" subtitle="Audit trail — все действия в системе">
