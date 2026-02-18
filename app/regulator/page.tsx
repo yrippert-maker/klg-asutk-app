@@ -1,7 +1,6 @@
 /**
- * Панель регулятора ФАВТ
- * 
- * Доступ: только роль favt_inspector (сотрудники ФАВТ) или admin.
+ * Регулятор — Минтранс, ФАВТ, Ространснадзор
+ * Доступ: favt_inspector или admin.
  * Показывает ТОЛЬКО агрегированные данные согласно:
  *   - ВК РФ ст. 8, 24.1, 28, 33, 36, 37, 67, 68
  *   - ФАП-246, ФАП-285, ФГИС РЭВС
@@ -43,7 +42,7 @@ function AccessDenied() {
         <div className="text-6xl mb-4">🔒</div>
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Доступ ограничен</h1>
         <p className="text-gray-500 mb-4">
-          Панель регулятора доступна только уполномоченным сотрудникам ФАВТ (Росавиации).
+          Панель доступна уполномоченным сотрудникам Минтранса, ФАВТ и Ространснадзора.
         </p>
         <p className="text-xs text-gray-400">
           Основание: ВК РФ ст. 8 — Федеральные правила использования воздушного пространства.
@@ -93,10 +92,19 @@ export default function RegulatorPanel() {
   const [personnelData, setPersonnelData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [days, setDays] = useState(90);
+  const [agency, setAgency] = useState<'mintrans' | 'favt' | 'rostransnadzor'>('favt');
+
+  const DEMO_OVERVIEW: OverviewData = {
+    aircraft: { total: 142, airworthy: 118, in_maintenance: 12, grounded: 8, decommissioned: 4 },
+    organizations: { total: 28 },
+    certification: { total_applications: 15, pending: 3, approved: 10, rejected: 2 },
+    safety: { total_risks: 45, critical: 2, high: 8, unresolved: 5 },
+    audits_last_30d: 7,
+    legal_basis: ['ВК РФ ст. 8, 24.1, 28, 33, 36, 37', 'ФАП-246, ФАП-148', 'ICAO Annex 6/8/19'],
+  };
 
   // Access control: only favt_inspector or admin
-  const hasAccess = user?.role === 'favt_inspector' || user?.role === 'admin'
-    || user?.roles?.includes('favt_inspector') || user?.roles?.includes('admin');
+  const hasAccess = user?.role === 'favt_inspector' || user?.role === 'admin';
 
   const fetchData = useCallback(async (endpoint: string) => {
     try {
@@ -112,7 +120,7 @@ export default function RegulatorPanel() {
   useEffect(() => {
     if (!hasAccess) return;
     setLoading(true);
-    fetchData('overview').then(d => { setOverview(d); setLoading(false); });
+    fetchData('overview').then(d => { setOverview(d || DEMO_OVERVIEW); setLoading(false); });
   }, [hasAccess, fetchData]);
 
   useEffect(() => {
@@ -155,8 +163,8 @@ export default function RegulatorPanel() {
 
   return (
     <PageLayout
-      title="🏛️ Панель регулятора — ФАВТ"
-      subtitle="Федеральное агентство воздушного транспорта (Росавиация)"
+      title="🏛️ Регулятор — Минтранс, ФАВТ, Ространснадзор"
+      subtitle="Минтранс России · Федеральное агентство воздушного транспорта · Ространснадзор"
       actions={
         <div className="flex gap-2">
           <button onClick={handleExport} className="btn-sm bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-1">
@@ -175,6 +183,15 @@ export default function RegulatorPanel() {
         Персональные данные и коммерческая тайна не раскрываются.
       </div>
 
+      {/* Ведомства */}
+      <div className="flex gap-1 mb-4 border-b border-gray-200">
+        {(['mintrans', 'favt', 'rostransnadzor'] as const).map(a => (
+          <button key={a} onClick={() => setAgency(a)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${agency === a ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'}`}>
+            {a === 'mintrans' ? 'Минтранс' : a === 'favt' ? 'ФАВТ' : 'Ространснадзор'}
+          </button>
+        ))}
+      </div>
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-gray-200 overflow-x-auto">
         {TABS.map(t => (

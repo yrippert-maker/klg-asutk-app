@@ -1,7 +1,6 @@
 /**
  * Auth context provider for КЛГ АСУ ТК.
- * Manages JWT token, user info, RBAC.
- * Разработчик: АО «REFLY»
+ * Fallback на demo-пользователей при недоступности бэкенда.
  */
 'use client';
 
@@ -9,7 +8,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, Rea
 import { setAuthToken, getAuthToken, clearAuthToken, usersApi } from '@/lib/api/api-client';
 import { wsClient } from '@/lib/ws-client';
 
-export type UserRole = 'admin' | 'authority_inspector' | 'operator_manager' | 'operator_user' | 'mro_manager' | 'mro_user';
+export type UserRole = 'admin' | 'authority_inspector' | 'favt_inspector' | 'operator_manager' | 'operator_user' | 'mro_manager' | 'mro_user';
 
 export interface AuthUser {
   id: string;
@@ -20,13 +19,18 @@ export interface AuthUser {
   organization_name: string | null;
 }
 
+const DEMO_USERS: Record<string, AuthUser> = {
+  dev: { id: 'demo-dev', display_name: 'Разработчик', email: 'dev@local', role: 'admin', organization_id: null, organization_name: 'Локальная разработка' },
+  'demo-admin': { id: 'demo-admin', display_name: 'Администратор', email: 'admin@demo', role: 'admin', organization_id: null, organization_name: 'Демо' },
+  'demo-inspector': { id: 'demo-inspector', display_name: 'Инспектор', email: 'inspector@demo', role: 'authority_inspector', organization_id: null, organization_name: 'ФАВТ' },
+};
+
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   login: (token: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
-  // RBAC helpers
   isAdmin: boolean;
   isAuthority: boolean;
   isOperator: boolean;
@@ -52,14 +56,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchUser = useCallback(async () => {
+    const token = getAuthToken();
     try {
       const me = await usersApi.me();
       setUser(me as AuthUser);
-      // Connect WebSocket
       wsClient.connect(me.id, me.organization_id || undefined);
     } catch {
-      setUser(null);
-      clearAuthToken();
+      if (token && DEMO_USERS[token]) {
+        setUser(DEMO_USERS[token]);
+      } else {
+        setUser(null);
+        clearAuthToken();
+      }
     } finally {
       setLoading(false);
     }
@@ -72,9 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       setLoading(false);
     }
-    return () => {
-      wsClient.disconnect();
-    };
+    return () => { wsClient.disconnect(); };
   }, [fetchUser]);
 
   const login = async (token: string) => {
@@ -98,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       isAuthenticated: !!user,
       isAdmin: role === 'admin',
-      isAuthority: role === 'admin' || role === 'authority_inspector',
+      isAuthority: role === 'admin' || role === 'authority_inspector' || role === 'favt_inspector',
       isOperator: role.startsWith('operator'),
       isMRO: role.startsWith('mro'),
       hasRole: (...roles) => roles.includes(role as UserRole),
@@ -112,9 +118,6 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-/**
- * RBAC guard component: shows children only if user has required role.
- */
 export function RequireRole({ roles, children, fallback }: {
   roles: UserRole[];
   children: ReactNode;

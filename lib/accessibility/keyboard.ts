@@ -5,16 +5,16 @@ export class Hotkey {
   unregister() {}
 }
 
-export function createActivationHandler(_keys: string[], _handler: () => void) {
-  return () => {};
+export function createActivationHandler(_handler: () => void, _keys?: string[]) {
+  return (_e: KeyboardEvent) => {};
 }
 
 export function createEscapeHandler(_handler: () => void) {
   return (e: KeyboardEvent) => { if (e.key === 'Escape') _handler(); };
 }
 
-export function createFocusTrap(_container: HTMLElement) {
-  return { activate: () => {}, deactivate: () => {} };
+export function createFocusTrap(_container: HTMLElement | null, _onClose?: () => void): () => void {
+  return () => {};
 }
 
 export function registerHotkeys(_map: Record<string, () => void>) {}

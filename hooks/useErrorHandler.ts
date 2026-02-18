@@ -38,11 +38,15 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
     // Установка ошибки
     setError(errorObj);
     
-    // Получение понятного сообщения
+    // Получение понятного сообщения (единый тип { title, action? } | null)
     const friendlyError = context
       ? getContextualErrorMessage(errorObj, context)
       : getUserFriendlyError(errorObj);
-    setUserFriendlyError(friendlyError);
+    const resolved =
+      typeof friendlyError === 'string'
+        ? friendlyError ? { title: friendlyError } : null
+        : friendlyError;
+    setUserFriendlyError(resolved);
     
     // Вызов пользовательского обработчика
     if (options.onError) {

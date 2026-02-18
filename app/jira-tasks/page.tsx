@@ -27,7 +27,7 @@ export default function JiraTasksPage() {
   }, []);
 
   const filtered = priorityFilter ? epics.filter(e => e.priority === priorityFilter) : epics;
-  const priorities = [...new Set(epics.map(e => e.priority).filter(Boolean))];
+  const priorities = Array.from(new Set(epics.map(e => e.priority).filter(Boolean)));
 
   return (
     <PageLayout title="Задачи Jira" subtitle={loading ? 'Загрузка...' : `Эпиков: ${filtered.length}`}>

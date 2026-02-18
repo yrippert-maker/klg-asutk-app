@@ -18,7 +18,10 @@ export function getUserFriendlyError(error: unknown): { title: string; action?: 
   return { title, action: 'Повторите попытку позже' };
 }
 
-export function getContextualErrorMessage(error: unknown, _context?: string): string {
+export function getContextualErrorMessage(
+  error: unknown,
+  _context?: string | { action?: string; resource?: string }
+): string {
   const r = getUserFriendlyError(error);
   return r?.title || 'Произошла ошибка';
 }

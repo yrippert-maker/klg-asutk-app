@@ -25,7 +25,7 @@ export default function RegulationsPage() {
     })();
   }, []);
 
-  const sources = useMemo(() => [...new Set(regulations.map(r => r.source).filter(Boolean))], [regulations]);
+  const sources = useMemo(() => Array.from(new Set(regulations.map(r => r.source).filter(Boolean))), [regulations]);
   const filtered = sourceFilter ? regulations.filter(r => r.source === sourceFilter) : regulations;
 
   return (

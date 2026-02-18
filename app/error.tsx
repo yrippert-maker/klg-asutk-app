@@ -40,12 +40,9 @@ export default function Error({
     >
       <div className="max-w-xl">
         <ErrorDisplay
-          title={friendlyError.title}
-          message={friendlyError.message}
-          type={friendlyError.type}
+          error={error}
           onRetry={reset}
-          showDetails={process.env.NODE_ENV === 'development'}
-          details={error.stack}
+          variant="page"
         />
       </div>
     </div>

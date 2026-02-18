@@ -9,7 +9,8 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api/api-client';
 
 interface DashboardData {
-  overview: any; directives: any; lifeLimits: any; personnel: any; risks: any; woStats: any; openDefects: any; fgisStatus: any;
+  overview: any; directives: any; lifeLimits: any; personnel: any; risks: any;
+  woStats?: any; openDefects?: any; fgisStatus?: any;
 }
 
 function StatCard({ label, value, sub, color, href }: { label: string; value: number | string; sub?: string; color: string; href?: string }) {
@@ -157,7 +158,7 @@ export default function DashboardPage() {
                 { href: '/airworthiness-core', label: '🔧 Контроль ЛГ', desc: 'AD, SB, ресурсы, компоненты' },
                 { href: '/personnel-plg', label: '🎓 Персонал ПЛГ', desc: 'Аттестация, ПК, 11 программ' },
                 { href: '/checklists', label: '✅ Чек-листы', desc: 'Инспекции и проверки' },
-                { href: '/regulator', label: '🏛️ Панель ФАВТ', desc: 'Данные для регулятора' },
+                { href: '/regulator', label: '🏛️ Регулятор', desc: 'Минтранс, ФАВТ, Ространснадзор' },
               ].map(l => (
                 <Link key={l.href} href={l.href}
                   className="card p-3 hover:shadow-md transition-shadow">

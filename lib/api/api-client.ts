@@ -10,21 +10,36 @@
 // In development, Next.js proxies via rewrites in next.config.
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
-// ─── Auth ────────────────────────────────────────
+// ─── Auth (persist token: sessionStorage + cookie) ─
 let _token: string | null = null;
+
+const AUTH_KEY = 'klg_auth_token';
 
 export function setAuthToken(token: string) {
   _token = token;
-  // Токен хранится только в памяти — безопаснее чем sessionStorage.
-  // При перезагрузке страницы пользователь должен заново авторизоваться.
+  if (typeof window !== 'undefined') {
+    try { sessionStorage.setItem(AUTH_KEY, token); } catch { /* ignore */ }
+    document.cookie = `${AUTH_KEY}=${encodeURIComponent(token)}; path=/; max-age=86400; SameSite=Lax`;
+  }
 }
 
 export function getAuthToken(): string | null {
-  return _token || process.env.NEXT_PUBLIC_DEV_TOKEN || null;
+  if (_token) return _token;
+  if (typeof window !== 'undefined') {
+    try {
+      const s = sessionStorage.getItem(AUTH_KEY);
+      if (s) { _token = s; return s; }
+    } catch { /* ignore */ }
+  }
+  return process.env.NEXT_PUBLIC_DEV_TOKEN || null;
 }
 
 export function clearAuthToken() {
   _token = null;
+  if (typeof window !== 'undefined') {
+    try { sessionStorage.removeItem(AUTH_KEY); } catch { /* ignore */ }
+    document.cookie = `${AUTH_KEY}=; path=/; max-age=0`;
+  }
 }
 
 // ─── Base fetch ──────────────────────────────────
